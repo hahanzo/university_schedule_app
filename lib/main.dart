@@ -6,16 +6,13 @@ import 'features/schedule/data/repositories/schedule_repository_impl.dart';
 import 'features/schedule/presentation/page/home_page.dart';
 
 void main() {
-  // 1. Створюємо DataSource
   final dataSource = ScheduleLocalDataSourceImpl();
   
-  // 2. Створюємо Repository
   final repository = ScheduleRepositoryImpl(localDataSource: dataSource);
 
   runApp(
     MaterialApp(
       home: BlocProvider(
-        // 3. Створюємо BLoC і даємо йому репозиторій
         create: (context) => ScheduleBloc(repository: repository),
         child: const HomePage(),
       ),
