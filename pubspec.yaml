@@ -42,6 +42,7 @@ dependencies:
   # State Management
   equatable: ^2.0.0
   flutter_bloc: ^9.1.1
+  rxdart: ^0.28.0
 
 dev_dependencies:
   flutter_test:

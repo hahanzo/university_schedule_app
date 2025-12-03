@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-
+import '../../domain/repositories/schedule_repository.dart';
 import '../bloc/schedule_bloc.dart';
+import '../bloc/search_bloc.dart';
 import '../widgets/lesson_card.dart';
 import '../widgets/week_calendar_strip.dart';
+import 'search_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,7 +20,7 @@ class _HomePageState extends State<HomePage> {
   // Temporery data (later take from SettingsBloc)
   final String _groupName = "КН-11-1"; 
   DateTime _selectedDate = DateTime.now();
-  String _currentWeekType = 'numerator';
+  final String _currentWeekType = 'numerator';
 
   @override
   void initState() {
@@ -82,6 +84,23 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                     ],
+                  ),
+                  // Search
+                  IconButton.filledTonal(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BlocProvider(
+                            create: (context) => SearchBloc(
+                              repository: context.read<ScheduleRepository>(), 
+                            ),
+                            child: const SearchPage(),
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.search),
                   ),
                   // Avator or setting button
                   IconButton.filledTonal(
