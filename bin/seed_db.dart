@@ -18,12 +18,12 @@ void main() async {
   print('🚀 Uploading clean database for Flutter...');
 
   for (var item in scheduleData) {
-    // 1. Form document ID: group_day_lesson_week
+    // Form document ID: group_day_lesson_week
     String gId = item['groupId'].toString().toLowerCase().replaceAll('-', '');
     String week = item['weekType'].toString().substring(0, 3); 
     String docId = "${gId}_${item['dayOfWeek']}_${item['lessonNumber']}_$week";
 
-    // 2. Identifiers for transfer logic (plain text)
+    // Identifiers for transfer logic (plain text)
     String teacherId = item['teacher'].toString().toLowerCase()
         .replaceAll(' ', '_').replaceAll('.', '_');
     String roomId = "aud_${item['room'].toString().replaceAll('а.', '').trim()}";
