@@ -1,11 +1,21 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'core/injection.dart';
+import 'domain/repositories/schedule_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  await Firebase.initializeApp();
+  // Initialize with fake data for emulator usage
+  await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: "any-key", 
+      appId: "uni-schedule-app",
+      messagingSenderId: "any-id",
+      projectId: "uni-schedule-dev",
+      storageBucket: "uni-schedule-dev.appspot.com",
+    ),
+  );
   
   await configureDependencies();
 
@@ -17,6 +27,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    testSchedule();
     return MaterialApp(
       title: 'Uni Schedule',
       theme: ThemeData(
@@ -24,8 +35,17 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const Scaffold(
-        body: Center(child: Text('База підключена до Docker!')),
+        body: Center(child: Text('Database connected to Docker!')),
       ),
     );
+  }
+}
+
+void testSchedule() async {
+  final repo = getIt<ScheduleRepository>();
+  final lessons = await repo.getScheduleByGroup('КН-11-1');
+  
+  for (var lesson in lessons) {
+    print('📖 Lesson: ${lesson.subjectName} о ${lesson.timeStart}');
   }
 }
