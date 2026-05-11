@@ -46,3 +46,7 @@ app.*.map.json
 
 # Firebase seeding data 
 /assets/data/schedule.json
+
+# Generated Freezed and JSON Serializable files
+*.freezed.dart
+*.g.dart
