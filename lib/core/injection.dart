@@ -1,7 +1,8 @@
-import 'package:university_schedule_app/data/repositories/schedule_repository_impl.dart';
-import 'package:university_schedule_app/domain/repositories/schedule_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get_it/get_it.dart';
+import '../data/repositories/schedule_repository_impl.dart';
+import '../domain/repositories/schedule_repository.dart';
+import '../presentation/bloc/schedule_cubit.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -25,4 +26,6 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<ScheduleRepository>(
     () => ScheduleRepositoryImpl(getIt<FirebaseFirestore>()),
   );
+
+  getIt.registerFactory(() => ScheduleCubit(getIt<ScheduleRepository>()));
 }
