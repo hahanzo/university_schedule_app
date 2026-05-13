@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../core/utils/string_extensions.dart';
 import '../../core/theme/app_colors.dart';
 
 class CalendarStrip extends StatefulWidget {
   final DateTime selectedDate;
   final Function(DateTime) onDateSelected;
+  // Callback for month label tap
+  final VoidCallback onMonthTap;
+  // Callbacks for arrow buttons
+  final VoidCallback onPreviousMonth;
+  final VoidCallback onNextMonth;
 
   const CalendarStrip({
     super.key,
     required this.selectedDate,
     required this.onDateSelected,
+    required this.onMonthTap,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
   });
 
   @override
@@ -18,17 +27,17 @@ class CalendarStrip extends StatefulWidget {
 
 class _CalendarStripState extends State<CalendarStrip> {
   late PageController _pageController;
-  int _currentWeekIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    // Use a large initial page to allow "infinite" scrolling in both directions
     _pageController = PageController(initialPage: 500);
   }
 
-  // Get the list of dates for the week based on the current week index
+  // Calculate workdays (Mon-Fri) for a specific week offset
   List<DateTime> _getWeekDays(int weekOffset) {
-    DateTime now = DateTime.now();
+    DateTime now = widget.selectedDate;
     DateTime monday = now.subtract(Duration(days: now.weekday - 1));
     monday = monday.add(Duration(days: weekOffset * 7));
 
@@ -39,25 +48,40 @@ class _CalendarStripState extends State<CalendarStrip> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Title with month and year
+        // Month Selector Header with arrows
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(
-            DateFormat('MMMM yyyy').format(widget.selectedDate),
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: widget.onPreviousMonth,
+              ),
+              // Interactive Month Title
+              GestureDetector(
+                onTap: widget.onMonthTap,
+                child: Text(
+                  DateFormat('MMMM', 'uk_UA').format(widget.selectedDate).toCapitalized(),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.onBackground,
+                      ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: widget.onNextMonth,
+              ),
+            ],
           ),
         ),
         
-        // PageView for week navigation
+        // Horizontal Day Strip
         SizedBox(
           height: 90,
           child: PageView.builder(
             controller: _pageController,
-            onPageChanged: (page) {
-              setState(() {
-                _currentWeekIndex = page - 500;
-              });
-            },
             itemBuilder: (context, index) {
               final weekDays = _getWeekDays(index - 500);
               return Row(
@@ -75,7 +99,6 @@ class _CalendarStripState extends State<CalendarStrip> {
     bool isSelected = DateUtils.isSameDay(date, widget.selectedDate);
     bool isToday = DateUtils.isSameDay(date, DateTime.now());
     
-    // Use Expanded to ensure equal spacing and proper alignment
     return Expanded(
       child: GestureDetector(
         onTap: () => widget.onDateSelected(date),
@@ -92,7 +115,7 @@ class _CalendarStripState extends State<CalendarStrip> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                DateFormat('E').format(date), // Пн, Вт...
+                DateFormat('E', 'uk_UA').format(date).toCapitalized(),
                 style: TextStyle(
                   color: isSelected ? Colors.black : Colors.grey,
                   fontSize: 12,
