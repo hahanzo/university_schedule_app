@@ -11,6 +11,8 @@ class ScheduleState with _$ScheduleState {
     required List<LessonDto> allLessons,      
     required List<LessonDto> filteredLessons,
     required List<String> selectedGroup,
+    required List<String> availableGroups,
+    required Map<String, String?> activeFilters,
   }) = _Loaded;
   const factory ScheduleState.error(String message) = _Error;
 }

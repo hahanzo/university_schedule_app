@@ -33,4 +33,21 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
             .map((doc) => LessonDto.fromJson(doc.data()))
             .toList());
   }
+
+  @override
+  Future<List<String>> getAllAvailableGroups() async {
+    try {
+      final snapshot = await _firestore.collection('schedule').get();
+      
+      final groups = snapshot.docs
+          .map((doc) => doc['groupId'] as String)
+          .toSet()
+          .toList();
+      
+      groups.sort();
+      return groups;
+    } catch (e) {
+      throw Exception("Error loading available groups: $e");
+    }
+  }
 }

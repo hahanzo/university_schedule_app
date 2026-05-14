@@ -4,4 +4,6 @@ abstract class ScheduleRepository {
   Future<List<LessonDto>> getScheduleByGroup(String groupId);
   
   Stream<List<LessonDto>> watchScheduleByGroup(String groupId);
+  
+  Future<List<String>> getAllAvailableGroups();
 }
