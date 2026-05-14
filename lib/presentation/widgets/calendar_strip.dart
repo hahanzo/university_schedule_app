@@ -58,17 +58,26 @@ class _CalendarStripState extends State<CalendarStrip> {
                 icon: const Icon(Icons.chevron_left),
                 onPressed: widget.onPreviousMonth,
               ),
-              // Interactive Month Title
-              GestureDetector(
-                onTap: widget.onMonthTap,
-                child: Text(
-                  DateFormat('MMMM', 'uk_UA').format(widget.selectedDate).toCapitalized(),
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.onBackground,
-                      ),
+              
+              // Updated Month Title with click feedback
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: widget.onMonthTap,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                    child: Text(
+                      DateFormat('MMMM', 'uk').format(widget.selectedDate).toCapitalized(),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.onBackground,
+                          ),
+                    ),
+                  ),
                 ),
               ),
+              
               IconButton(
                 icon: const Icon(Icons.chevron_right),
                 onPressed: widget.onNextMonth,

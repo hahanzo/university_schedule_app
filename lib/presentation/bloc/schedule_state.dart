@@ -10,6 +10,7 @@ class ScheduleState with _$ScheduleState {
   const factory ScheduleState.loaded({
     required List<LessonDto> allLessons,      
     required List<LessonDto> filteredLessons,
+    required List<String> selectedGroup,
   }) = _Loaded;
   const factory ScheduleState.error(String message) = _Error;
 }

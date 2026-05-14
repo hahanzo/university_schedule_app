@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/injection.dart';
+import '../../core/theme/app_colors.dart';
 import '../../data/models/lesson_dto.dart';
 import '../bloc/schedule_cubit.dart';
 import '../bloc/schedule_state.dart';
+import '../widgets/filter_chips_bar.dart';
+import '../widgets/selection_bottom_sheet.dart';
+import '../widgets/time_divider.dart';
 import '../widgets/lesson_card.dart';
 import '../widgets/calendar_strip.dart';
 import '../widgets/schedule_header.dart';
-import '../../core/theme/app_colors.dart';
-import '../widgets/time_divider.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -18,12 +20,14 @@ class ScheduleScreen extends StatefulWidget {
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  final _cubit = getIt<ScheduleCubit>();
+  late ScheduleCubit _cubit;
   DateTime _selectedDate = DateTime.now();
+  bool _isFilterVisible = false;
 
   @override
   void initState() {
     super.initState();
+    _cubit = getIt<ScheduleCubit>();
     _cubit.loadSchedule('КН-11-1');
   }
 
@@ -31,6 +35,38 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     setState(() {
       _selectedDate = newDate;
     });
+  }
+
+  void _toggleFilters() {
+    setState(() {
+      _isFilterVisible = !_isFilterVisible;
+    });
+  }
+
+  String _getDayName(int day) {
+    switch (day) {
+      case 1: return 'Понеділок';
+      case 2: return 'Вівторок';
+      case 3: return 'Середа';
+      case 4: return 'Четвер';
+      case 5: return 'П\'ятниця';
+      case 6: return 'Субота';
+      case 7: return 'Неділя';
+      default: return 'Невідомо';
+    }
+  }
+
+  int? _getDayNumber(String? dayName) {
+    switch (dayName) {
+      case 'Понеділок': return 1;
+      case 'Вівторок': return 2;
+      case 'Середа': return 3;
+      case 'Четвер': return 4;
+      case 'П\'ятниця': return 5;
+      case 'Субота': return 6;
+      case 'Неділя': return 7;
+      default: return null;
+    }
   }
 
   // Logic to check if the lesson has already ended
@@ -54,6 +90,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
+  // Logic for switching months
+  void _changeMonth(int offset) {
+    setState(() {
+      _selectedDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month + offset,
+        _selectedDate.day,
+      );
+    });
+  }
+
   // Function to call the Material 3 Date Picker
   Future<void> _showDatePicker() async {
     final DateTime? picked = await showDatePicker(
@@ -67,70 +114,126 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
-  // Logic for switching months
-  void _changeMonth(int offset) {
-    setState(() {
-      _selectedDate = DateTime(
-        _selectedDate.year,
-        _selectedDate.month + offset,
-        _selectedDate.day,
-      );
-    });
+  // Function to open the bottom sheet with filter options based on the selected filter type
+  void _openSelectionMenu(String filterType) {
+    final state = _cubit.state;
+    
+    state.maybeWhen(
+      loaded: (allLessons, _, __) {
+        List<String> options = [];
+
+        switch (filterType) {
+          case 'Викладач':
+            options = allLessons.map((l) => l.teacherName).toSet().toList();
+            break;
+          case 'Група':
+            options = allLessons.map((l) => l.groupId).toSet().toList();
+            break;
+          case 'Предмет':
+            options = allLessons.map((l) => l.subjectName).toSet().toList();
+            break;
+          case 'Година':
+            options = allLessons.map((l) => l.timeStart).toSet().toList();
+            break;
+          case 'День':
+            options = allLessons.map((l) => _getDayName(l.dayOfWeek)).toSet().toList();
+            break;
+        }
+        
+        if (filterType == 'День') {
+          options.sort((a, b) => (_getDayNumber(a) ?? 0).compareTo(_getDayNumber(b) ?? 0));
+        } else {
+          options.sort(); 
+        }
+
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (sheetContext) => SelectionBottomSheet(
+            title: '$filterType',
+            items: options,
+            onItemSelected: (selected) {
+              final value = selected == 'RESET' ? null : selected;
+              
+              if (filterType == 'Викладач') {
+                _cubit.applyFilter(teacher: value);
+              } else if (filterType == 'Група') {
+                _cubit.applyFilter(group: value);
+              } else if (filterType == 'Предмет') {
+                _cubit.applyFilter(subject: value);
+              } else if (filterType == 'Година') {
+                _cubit.applyFilter(time: value);
+              } else if (filterType == 'День') {
+                _cubit.applyFilter(dayOfWeek: _getDayNumber(value));
+              }
+            },
+          ),
+        );
+      },
+      orElse: () {},
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => _cubit,
-      child: PopScope(
-        // Triggered when the user attempts to pop the page (Back button/gesture)
-        onPopInvokedWithResult: (didPop, result) {
-          if (FocusScope.of(context).hasFocus) {
-            FocusScope.of(context).unfocus();
-          }
-        },
-        child: Scaffold(
-          backgroundColor: AppColors.background,
-          body: SafeArea(
-            child: Column(
-              children: [
-                // Search and Filter Header
-                ScheduleHeader(
-                  onSearchChanged: (query) => _cubit.searchLessons(query),
-                  onFilterPressed: () {
-                    // Call BottomSheet with filters (implement in next step)
+    return PopScope(
+      // Triggered when the user attempts to pop the page (Back button/gesture)
+      onPopInvokedWithResult: (didPop, result) {
+        if (FocusScope.of(context).hasFocus) {
+          FocusScope.of(context).unfocus();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Search and Filter Header
+              ScheduleHeader(
+                onSearchChanged: (query) => _cubit.searchLessons(query),
+                onFilterPressed: () {
+                  _toggleFilters();
+                },
+              ),
+
+              // Calendar strip (Mon-Fri)
+              CalendarStrip(
+                selectedDate: _selectedDate,
+                onDateSelected: _onDateChanged,
+                onMonthTap: _showDatePicker,
+                onPreviousMonth: () => _changeMonth(-1),
+                onNextMonth: () => _changeMonth(1),
+              ),
+
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _isFilterVisible
+                    ? FilterChipsBar(
+                        onChipTap: (type) => _openSelectionMenu(type),
+                      )
+                    : const SizedBox(width: double.infinity, height: 0),
+              ),
+              
+              // Divider between calendar and lessons list
+              // const Divider(height: 1, color: Colors.black12),
+
+              // List of lessons
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    setState(() {
+                      _selectedDate = DateTime.now();
+                    });
+
+                    // Reload data from Bloc
+                    await _cubit.loadSchedule('КН-11-1');
                   },
-                ),
-
-                // Calendar strip (Mon-Fri)
-                CalendarStrip(
-                  selectedDate: _selectedDate,
-                  onDateSelected: _onDateChanged,
-                  onMonthTap: _showDatePicker,
-                  onPreviousMonth: () => _changeMonth(-1),
-                  onNextMonth: () => _changeMonth(1),
-                ),
-
-                // Divider between calendar and lessons list (HINT: may be useful for better separation of UI sections)
-                // const Divider(height: 1, color: Colors.black12),
-
-                // List of lessons
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () async {
-                      setState(() {
-                        _selectedDate = DateTime.now();
-                      });
-
-                      // Clear search via controller if needed
-                      // (requires moving controller to screen level or using a key)
-
-                      // Reload data from Bloc
-                      await _cubit.loadSchedule('КН-11-1');
-                    },
-                    color: AppColors.primary,
-                    child: BlocBuilder<ScheduleCubit, ScheduleState>(
-                      builder: (context, state) {
+                  color: AppColors.primary,
+                  child: BlocBuilder<ScheduleCubit, ScheduleState>(
+                    bloc: _cubit, // Explicitly pass the bloc instance
+                    builder: (context, state) {
                         return state.when(
                           initial: () =>
                               const Center(child: Text("Select a group")),
@@ -140,7 +243,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             ),
                           ),
                           error: (message) => Center(child: Text(message)),
-                          loaded: (allLessons, filteredLessons) {
+                          loaded: (allLessons, filteredLessons, selectedGroup) {
                             final bool isSearching =
                                 filteredLessons.length != allLessons.length;
 
@@ -216,7 +319,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }

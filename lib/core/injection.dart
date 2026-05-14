@@ -27,5 +27,7 @@ Future<void> configureDependencies() async {
     () => ScheduleRepositoryImpl(getIt<FirebaseFirestore>()),
   );
 
-  getIt.registerFactory(() => ScheduleCubit(getIt<ScheduleRepository>()));
+  getIt.registerSingleton<ScheduleCubit>(
+    ScheduleCubit(getIt<ScheduleRepository>()),
+  );
 }

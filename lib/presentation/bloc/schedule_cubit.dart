@@ -16,6 +16,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       emit(ScheduleState.loaded(
         allLessons: lessons, 
         filteredLessons: lessons,
+        selectedGroup: [groupId],
       ));
     } catch (e) {
       emit(ScheduleState.error(e.toString()));
@@ -24,11 +25,12 @@ class ScheduleCubit extends Cubit<ScheduleState> {
 
   void searchLessons(String query) {
     state.maybeWhen(
-      loaded: (allLessons, _) {
+      loaded: (allLessons, _, selectedGroup) { 
         if (query.isEmpty) {
           emit(ScheduleState.loaded(
             allLessons: allLessons, 
             filteredLessons: allLessons,
+            selectedGroup: selectedGroup, 
           ));
           return;
         }
@@ -41,6 +43,30 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         emit(ScheduleState.loaded(
           allLessons: allLessons, 
           filteredLessons: filtered,
+          selectedGroup: selectedGroup,
+        ));
+      },
+      orElse: () {},
+    );
+  }
+
+  void applyFilter({String? teacher, String? group, String? subject, String? time, int? dayOfWeek}) {
+    state.maybeWhen(
+      loaded: (allLessons, _, selectedGroup) {
+        final filtered = allLessons.where((lesson) {
+          bool matches = true;
+          if (teacher != null) matches &= lesson.teacherName == teacher;
+          if (group != null) matches &= lesson.groupId == group;
+          if (subject != null) matches &= lesson.subjectName == subject;
+          if (time != null) matches &= lesson.timeStart == time;
+          if (dayOfWeek != null) matches &= lesson.dayOfWeek == dayOfWeek;
+          return matches;
+        }).toList();
+
+        emit(ScheduleState.loaded(
+          allLessons: allLessons, 
+          filteredLessons: filtered, 
+          selectedGroup: selectedGroup,
         ));
       },
       orElse: () {},

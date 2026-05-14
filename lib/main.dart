@@ -2,6 +2,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'presentation/pages/schedule_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'core/injection.dart';
@@ -20,6 +21,13 @@ void main() async {
       storageBucket: "uni-schedule-dev.appspot.com",
     ),
   );
+  
+  // Set transparent status bar and navigation bar for a more immersive experience
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent, 
+    statusBarIconBrightness: Brightness.dark, 
+    systemNavigationBarColor: Colors.transparent,
+  ));
   
   await configureDependencies();
 
