@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:university_schedule_app/l10n/app_localizations.dart';
 
 class GroupSelector extends StatefulWidget {
   final List<String> selectedGroups;
@@ -69,9 +69,9 @@ class _GroupSelectorState extends State<GroupSelector> {
       if (widget.selectedGroups.length <= 1) {
         // Can't uncheck last one
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Мінімум одна група повинна бути вибрана'),
-            duration: Duration(milliseconds: 1500),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.minOneGroup),
+            duration: const Duration(milliseconds: 1500),
           ),
         );
         return;
@@ -82,6 +82,8 @@ class _GroupSelectorState extends State<GroupSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       constraints: BoxConstraints(
@@ -91,7 +93,7 @@ class _GroupSelectorState extends State<GroupSelector> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Виберіть групи',
+            AppLocalizations.of(context)!.selectGroups,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
@@ -100,7 +102,7 @@ class _GroupSelectorState extends State<GroupSelector> {
             controller: _searchController,
             onChanged: _updateFilter,
             decoration: InputDecoration(
-              hintText: 'Пошук групи...',
+              hintText: AppLocalizations.of(context)!.searchGroup,
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
@@ -126,7 +128,7 @@ class _GroupSelectorState extends State<GroupSelector> {
             child: _filteredGroups.isEmpty
                 ? Center(
                     child: Text(
-                      'Групи не знайдені',
+                      AppLocalizations.of(context)!.groupsNotFound,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.grey,
                       ),
@@ -137,18 +139,19 @@ class _GroupSelectorState extends State<GroupSelector> {
                       spacing: 8,
                       runSpacing: 8,
                       children: _filteredGroups.map((group) {
-                        final isSelected = widget.selectedGroups.contains(group);
+                        final isSelected =
+                            widget.selectedGroups.contains(group);
                         return FilterChip(
                           key: ValueKey(group),
                           label: Text(group),
                           selected: isSelected,
-                          onSelected: (value) =>
-                              _handleToggle(group, value),
+                          onSelected: (value) => _handleToggle(group, value),
                           backgroundColor: Colors.transparent,
-                          selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                          selectedColor:
+                              colorScheme.primary.withValues(alpha: 0.2),
                           side: BorderSide(
                             color: isSelected
-                                ? AppColors.primary
+                                ? colorScheme.primary
                                 : Colors.grey.shade300,
                             width: isSelected ? 2 : 1,
                           ),
@@ -163,9 +166,12 @@ class _GroupSelectorState extends State<GroupSelector> {
             child: ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: colorScheme.primary,
+                // onSurface is dark in light mode — ensures readable text on green
+                foregroundColor: colorScheme.onSurface,
+                textStyle: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              child: const Text('Готово'),
+              child: Text(AppLocalizations.of(context)!.done),
             ),
           ),
         ],

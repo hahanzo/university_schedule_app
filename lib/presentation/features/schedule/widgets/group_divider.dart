@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
 
 class GroupDivider extends StatelessWidget {
   final String groupName;
 
-  const GroupDivider({
-    super.key,
-    required this.groupName,
-  });
+  const GroupDivider({super.key, required this.groupName});
 
   @override
   Widget build(BuildContext context) {
@@ -18,22 +14,28 @@ class GroupDivider extends StatelessWidget {
           Expanded(
             child: Container(
               height: 1,
-              color: AppColors.onSurfaceVariant.withOpacity(0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
             ),
           ),
           const SizedBox(width: 8),
           Text(
             groupName,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppColors.onSurfaceVariant.withOpacity(0.6),
-                  fontWeight: FontWeight.bold,
-                ),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Container(
               height: 1,
-              color: AppColors.onSurfaceVariant.withOpacity(0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
             ),
           ),
         ],

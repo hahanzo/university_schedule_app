@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:university_schedule_app/l10n/app_localizations.dart';
 
 class FilterChipsBar extends StatelessWidget {
   // Callback when filter chip is tapped (to open selection menu)
@@ -10,7 +10,7 @@ class FilterChipsBar extends StatelessWidget {
   final Map<String, String?> activeFilters;
 
   const FilterChipsBar({
-    super.key, 
+    super.key,
     required this.onChipTap,
     required this.onClearFilter,
     this.activeFilters = const {},
@@ -20,9 +20,9 @@ class FilterChipsBar extends StatelessWidget {
   Widget build(BuildContext context) {
     // Define available filter types
     final filterCategories = [
-      {'label': 'Викладач', 'key': 'teacher'},
-      {'label': 'Година', 'key': 'time'},
-      {'label': 'Предмет', 'key': 'subject'},
+      {'label': AppLocalizations.of(context)!.teacher, 'key': 'teacher'},
+      {'label': AppLocalizations.of(context)!.time, 'key': 'time'},
+      {'label': AppLocalizations.of(context)!.subject, 'key': 'subject'},
     ];
 
     return SizedBox(
@@ -35,7 +35,8 @@ class FilterChipsBar extends StatelessWidget {
             final key = filter['key']!;
             final label = filter['label']!;
             // Check if this filter is currently active
-            final isActive = activeFilters.containsKey(key) && activeFilters[key] != null;
+            final isActive =
+                activeFilters.containsKey(key) && activeFilters[key] != null;
             final filterValue = activeFilters[key];
 
             return Padding(
@@ -51,9 +52,13 @@ class FilterChipsBar extends StatelessWidget {
                 // Green theme - same color scheme as group selector
                 onSelected: (_) => onChipTap(key),
                 backgroundColor: Colors.transparent,
-                selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                selectedColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.2),
                 side: BorderSide(
-                  color: isActive ? AppColors.primary : Colors.grey.shade300,
+                  color: isActive
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey.shade300,
                   width: isActive ? 2 : 1,
                 ),
                 // Show X delete button only if filter is active

@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import '../../data/models/lesson_dto.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:university_schedule_app/l10n/app_localizations.dart';
+import '../../../../data/models/lesson_dto.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class LessonCard extends StatelessWidget {
   final LessonDto lesson;
 
   const LessonCard({super.key, required this.lesson});
 
-  String? _getTranslatedType(String type) {
+  String? _getTranslatedType(BuildContext context, String type) {
     final t = type.toLowerCase();
-    if (t.contains('lecture')) return 'лекція';
-    if (t.contains('lab')) return 'лаб. роб';
-    if (t.contains('practice')) return 'прак. роб';
+    if (t.contains('lecture')) return AppLocalizations.of(context)!.lecture;
+    if (t.contains('lab')) return AppLocalizations.of(context)!.lab;
+    if (t.contains('practice')) return AppLocalizations.of(context)!.practice;
     if (t.contains('unknown')) return null;
     return t;
   }
@@ -24,11 +25,14 @@ class LessonCard extends StatelessWidget {
     final textTheme = theme.textTheme;
 
     // Determine the accent line color based on lesson type
-    final Color typeColor = _getIndicatorColor(lesson.type);
-    final String? translatedType = _getTranslatedType(lesson.type);
+    final Color typeColor = _getIndicatorColor(context, lesson.type);
+    final String? translatedType = _getTranslatedType(context, lesson.type);
 
-    final bool hasTeacher = lesson.teacherName.isNotEmpty && lesson.teacherName.toLowerCase() != 'null';
-    final bool hasRoom = lesson.roomName.isNotEmpty && lesson.roomName.toLowerCase() != 'null';
+    final bool hasTeacher =
+        lesson.teacherName.isNotEmpty &&
+        lesson.teacherName.toLowerCase() != 'null';
+    final bool hasRoom =
+        lesson.roomName.isNotEmpty && lesson.roomName.toLowerCase() != 'null';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -45,20 +49,22 @@ class LessonCard extends StatelessWidget {
                   lesson.timeStart,
                   style: textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.onBackground,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 Text(
                   lesson.timeEnd,
                   style: textTheme.bodyMedium?.copyWith(
-                    color: AppColors.onSurfaceVariant.withOpacity(0.7),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          
+
           // Main Card Content
           Expanded(
             child: Container(
@@ -81,7 +87,7 @@ class LessonCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    
+
                     // Card content
                     Expanded(
                       child: Padding(
@@ -95,7 +101,9 @@ class LessonCard extends StatelessWidget {
                                 padding: const EdgeInsets.only(bottom: 4),
                                 child: Text(
                                   translatedType,
-                                  style: textTheme.labelMedium?.copyWith(color: Colors.grey),
+                                  style: textTheme.labelMedium?.copyWith(
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ),
                             // Subject name
@@ -103,7 +111,7 @@ class LessonCard extends StatelessWidget {
                               lesson.subjectName,
                               style: textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.onBackground,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             if (hasTeacher || hasRoom) ...[
@@ -111,7 +119,11 @@ class LessonCard extends StatelessWidget {
                               Row(
                                 children: [
                                   if (hasTeacher) ...[
-                                    const Icon(Icons.person_outline, size: 16, color: Colors.grey),
+                                    const Icon(
+                                      Icons.person_outline,
+                                      size: 16,
+                                      color: Colors.grey,
+                                    ),
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
@@ -123,9 +135,16 @@ class LessonCard extends StatelessWidget {
                                   ],
                                   if (hasRoom) ...[
                                     const SizedBox(width: 8),
-                                    const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
+                                    const Icon(
+                                      Icons.location_on_outlined,
+                                      size: 16,
+                                      color: Colors.grey,
+                                    ),
                                     const SizedBox(width: 4),
-                                    Text(lesson.roomName, style: textTheme.bodySmall),
+                                    Text(
+                                      lesson.roomName,
+                                      style: textTheme.bodySmall,
+                                    ),
                                   ],
                                 ],
                               ),
@@ -145,11 +164,17 @@ class LessonCard extends StatelessWidget {
   }
 
   // Logic for selecting line color from AppColors
-  Color _getIndicatorColor(String type) {
+  Color _getIndicatorColor(BuildContext context, String type) {
     final t = type.toLowerCase();
-    if (t.contains('lab')) return AppColors.labColor;
-    if (t.contains('lecture')) return AppColors.lectureColor;
-    if (t.contains('practice')) return AppColors.practiceColor;
+    if (t.contains('lab')) {
+      return Theme.of(context).extension<LessonColors>()!.labColor!;
+    }
+    if (t.contains('lecture')) {
+      return Theme.of(context).extension<LessonColors>()!.lectureColor!;
+    }
+    if (t.contains('practice')) {
+      return Theme.of(context).extension<LessonColors>()!.practiceColor!;
+    }
     return Colors.transparent;
   }
 }

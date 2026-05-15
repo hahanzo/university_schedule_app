@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../core/utils/string_extensions.dart';
-import '../../core/theme/app_colors.dart';
+import '../../../../core/utils/string_extensions.dart';
 
 class CalendarStrip extends StatefulWidget {
   final DateTime selectedDate;
@@ -27,20 +26,47 @@ class CalendarStrip extends StatefulWidget {
 
 class _CalendarStripState extends State<CalendarStrip> {
   late PageController _pageController;
+  late DateTime _anchorMonday;
 
   @override
   void initState() {
     super.initState();
-    // Use a large initial page to allow "infinite" scrolling in both directions
+    // Calculate Monday of the week containing the initial selectedDate
+    _anchorMonday = _getMonday(widget.selectedDate);
     _pageController = PageController(initialPage: 500);
+  }
+
+  DateTime _getMonday(DateTime date) {
+    return DateTime(date.year, date.month, date.day)
+        .subtract(Duration(days: date.weekday - 1));
+  }
+
+  @override
+  void didUpdateWidget(CalendarStrip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the date was changed from outside (e.g. month picker or next/prev month buttons)
+    // we need to check if we should jump to that week if it's not the one we are currently showing.
+    // However, to avoid jumping during manual scroll, we only sync if the week is different
+    // and it wasn't a simple day selection.
+    if (!DateUtils.isSameDay(oldWidget.selectedDate, widget.selectedDate)) {
+      final currentMonday = _anchorMonday.add(
+        Duration(days: (_pageController.page?.round() ?? 500 - 500) * 7),
+      );
+      final newMonday = _getMonday(widget.selectedDate);
+
+      if (!DateUtils.isSameDay(currentMonday, newMonday)) {
+        // Recalculate anchor to the new date to keep the view centered/synced
+        setState(() {
+          _anchorMonday = newMonday;
+          _pageController.jumpToPage(500);
+        });
+      }
+    }
   }
 
   // Calculate workdays (Mon-Fri) for a specific week offset
   List<DateTime> _getWeekDays(int weekOffset) {
-    DateTime now = widget.selectedDate;
-    DateTime monday = now.subtract(Duration(days: now.weekday - 1));
-    monday = monday.add(Duration(days: weekOffset * 7));
-
+    DateTime monday = _anchorMonday.add(Duration(days: weekOffset * 7));
     return List.generate(5, (index) => monday.add(Duration(days: index)));
   }
 
@@ -58,7 +84,7 @@ class _CalendarStripState extends State<CalendarStrip> {
                 icon: const Icon(Icons.chevron_left),
                 onPressed: widget.onPreviousMonth,
               ),
-              
+
               // Updated Month Title with click feedback
               Material(
                 color: Colors.transparent,
@@ -66,18 +92,24 @@ class _CalendarStripState extends State<CalendarStrip> {
                   onTap: widget.onMonthTap,
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0,
+                      vertical: 4.0,
+                    ),
                     child: Text(
-                      DateFormat('MMMM', 'uk').format(widget.selectedDate).toCapitalized(),
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.onBackground,
-                          ),
+                      DateFormat(
+                        'MMMM',
+                        Localizations.localeOf(context).toString(),
+                      ).format(widget.selectedDate).toCapitalized(),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                   ),
                 ),
               ),
-              
+
               IconButton(
                 icon: const Icon(Icons.chevron_right),
                 onPressed: widget.onNextMonth,
@@ -85,7 +117,7 @@ class _CalendarStripState extends State<CalendarStrip> {
             ],
           ),
         ),
-        
+
         // Horizontal Day Strip
         SizedBox(
           height: 90,
@@ -107,24 +139,32 @@ class _CalendarStripState extends State<CalendarStrip> {
   Widget _buildDayItem(DateTime date) {
     bool isSelected = DateUtils.isSameDay(date, widget.selectedDate);
     bool isToday = DateUtils.isSameDay(date, DateTime.now());
-    
+
     return Expanded(
       child: GestureDetector(
         onTap: () => widget.onDateSelected(date),
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : Colors.transparent,
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(32),
-            border: isToday && !isSelected 
-                ? Border.all(color: AppColors.primary, width: 1) 
+            border: isToday && !isSelected
+                ? Border.all(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 1,
+                  )
                 : null,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                DateFormat('E', 'uk_UA').format(date).toCapitalized(),
+                DateFormat(
+                  'E',
+                  Localizations.localeOf(context).toString(),
+                ).format(date).toCapitalized(),
                 style: TextStyle(
                   color: isSelected ? Colors.black : Colors.grey,
                   fontSize: 12,
@@ -136,7 +176,9 @@ class _CalendarStripState extends State<CalendarStrip> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.black : AppColors.onBackground,
+                  color: isSelected
+                      ? Colors.black
+                      : Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:university_schedule_app/l10n/app_localizations.dart';
 
 class ScheduleHeader extends StatefulWidget {
   final VoidCallback onFilterPressed;
@@ -15,7 +15,8 @@ class ScheduleHeader extends StatefulWidget {
   State<ScheduleHeader> createState() => _ScheduleHeaderState();
 }
 
-class _ScheduleHeaderState extends State<ScheduleHeader> with WidgetsBindingObserver {
+class _ScheduleHeaderState extends State<ScheduleHeader>
+    with WidgetsBindingObserver {
   final FocusNode _focusNode = FocusNode();
   final TextEditingController _controller = TextEditingController();
 
@@ -23,9 +24,9 @@ class _ScheduleHeaderState extends State<ScheduleHeader> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    
+
     _controller.addListener(() => setState(() {}));
-    
+
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus) setState(() {});
     });
@@ -68,7 +69,7 @@ class _ScheduleHeaderState extends State<ScheduleHeader> with WidgetsBindingObse
               child: Container(
                 height: 56,
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: TextField(
@@ -82,18 +83,18 @@ class _ScheduleHeaderState extends State<ScheduleHeader> with WidgetsBindingObse
                   onChanged: widget.onSearchChanged,
                   onSubmitted: (value) => _focusNode.unfocus(),
                   decoration: InputDecoration(
-                    hintText: 'Пошук розкладу',
+                    hintText: AppLocalizations.of(context)!.searchSchedule,
                     prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _controller.text.isNotEmpty 
-                      ? IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () {
-                            _controller.clear();
-                            widget.onSearchChanged('');
-                            _focusNode.unfocus();
-                          },
-                        )
-                      : null,
+                    suffixIcon: _controller.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              _controller.clear();
+                              widget.onSearchChanged('');
+                              _focusNode.unfocus();
+                            },
+                          )
+                        : null,
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 15),
                   ),

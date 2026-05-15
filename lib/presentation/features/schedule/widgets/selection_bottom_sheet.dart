@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:university_schedule_app/l10n/app_localizations.dart';
 
 class SelectionBottomSheet extends StatelessWidget {
   final String title;
@@ -17,9 +17,9 @@ class SelectionBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -32,7 +32,9 @@ class SelectionBottomSheet extends StatelessWidget {
               shrinkWrap: true,
               itemCount: items.length,
               separatorBuilder: (context, index) => Divider(
-                color: AppColors.onSurfaceVariant.withOpacity(0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
                 height: 1,
               ),
               itemBuilder: (context, index) {
@@ -42,7 +44,7 @@ class SelectionBottomSheet extends StatelessWidget {
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
@@ -51,9 +53,9 @@ class SelectionBottomSheet extends StatelessWidget {
                         size: 20,
                       ),
                     ),
-                    title: const Text(
-                      'Скинути фільтр',
-                      style: TextStyle(
+                    title: Text(
+                      AppLocalizations.of(context)!.clearFilter,
+                      style: const TextStyle(
                         color: Colors.red,
                         fontWeight: FontWeight.w500,
                       ),
@@ -69,8 +71,8 @@ class SelectionBottomSheet extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   title: Text(
                     items[index],
-                    style: const TextStyle(
-                      color: AppColors.onBackground,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
