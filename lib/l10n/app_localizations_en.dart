@@ -100,4 +100,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get denominator => 'Denominator';
+
+  @override
+  String get allGroups => 'All groups';
 }

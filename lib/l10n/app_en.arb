@@ -30,5 +30,6 @@
     "minOneGroup": "At least one group must be selected",
     "searchSchedule": "Search schedule",
     "numerator": "Numerator",
-    "denominator": "Denominator"
+    "denominator": "Denominator",
+    "allGroups": "All groups"
 }

@@ -283,6 +283,12 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Знаменник'**
   String get denominator;
+
+  /// No description provided for @allGroups.
+  ///
+  /// In uk, this message translates to:
+  /// **'Всі групи'**
+  String get allGroups;
 }
 
 class _AppLocalizationsDelegate

@@ -4,13 +4,13 @@ import 'package:university_schedule_app/l10n/app_localizations.dart';
 class GroupSelector extends StatefulWidget {
   final List<String> selectedGroups;
   final List<String> availableGroups;
-  final Function(String) onGroupToggle;
+  final Function(List<String>) onGroupsChanged;
 
   const GroupSelector({
     super.key,
     required this.selectedGroups,
     required this.availableGroups,
-    required this.onGroupToggle,
+    required this.onGroupsChanged,
   });
 
   @override
@@ -64,10 +64,24 @@ class _GroupSelectorState extends State<GroupSelector> {
   }
 
   void _handleToggle(String group, bool isSelected) {
-    if (!isSelected) {
-      // User wants to uncheck
-      if (widget.selectedGroups.length <= 1) {
-        // Can't uncheck last one
+    final areAllSelected =
+        widget.selectedGroups.length == widget.availableGroups.length;
+
+    if (areAllSelected) {
+      // If all were selected, and we click one, we switch to ONLY that one
+      widget.onGroupsChanged([group]);
+      return;
+    }
+
+    final newSelected = List<String>.from(widget.selectedGroups);
+    if (isSelected) {
+      if (!newSelected.contains(group)) {
+        newSelected.add(group);
+      }
+    } else {
+      if (newSelected.length > 1) {
+        newSelected.remove(group);
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(AppLocalizations.of(context)!.minOneGroup),
@@ -77,12 +91,14 @@ class _GroupSelectorState extends State<GroupSelector> {
         return;
       }
     }
-    widget.onGroupToggle(group);
+    widget.onGroupsChanged(newSelected);
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final areAllSelected =
+        widget.selectedGroups.length == widget.availableGroups.length;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -138,25 +154,54 @@ class _GroupSelectorState extends State<GroupSelector> {
                     child: Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _filteredGroups.map((group) {
-                        final isSelected =
-                            widget.selectedGroups.contains(group);
-                        return FilterChip(
-                          key: ValueKey(group),
-                          label: Text(group),
-                          selected: isSelected,
-                          onSelected: (value) => _handleToggle(group, value),
+                      children: [
+                        // "All groups" chip
+                        FilterChip(
+                          label: Text(AppLocalizations.of(context)!.allGroups),
+                          selected: areAllSelected,
+                          onSelected: (value) {
+                            if (value) {
+                              widget.onGroupsChanged(widget.availableGroups);
+                            } else {
+                              // Revert to first group
+                              if (widget.availableGroups.isNotEmpty) {
+                                widget.onGroupsChanged([
+                                  widget.availableGroups.first,
+                                ]);
+                              }
+                            }
+                          },
                           backgroundColor: Colors.transparent,
                           selectedColor:
                               colorScheme.primary.withValues(alpha: 0.2),
                           side: BorderSide(
-                            color: isSelected
+                            color: areAllSelected
                                 ? colorScheme.primary
                                 : Colors.grey.shade300,
-                            width: isSelected ? 2 : 1,
+                            width: areAllSelected ? 2 : 1,
                           ),
-                        );
-                      }).toList(),
+                        ),
+                        ..._filteredGroups.map((group) {
+                          // Only highlight individual chips if "All groups" is NOT selected
+                          final isSelected = !areAllSelected &&
+                              widget.selectedGroups.contains(group);
+                          return FilterChip(
+                            key: ValueKey(group),
+                            label: Text(group),
+                            selected: isSelected,
+                            onSelected: (value) => _handleToggle(group, value),
+                            backgroundColor: Colors.transparent,
+                            selectedColor:
+                                colorScheme.primary.withValues(alpha: 0.2),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? colorScheme.primary
+                                  : Colors.grey.shade300,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          );
+                        }).toList(),
+                      ],
                     ),
                   ),
           ),

@@ -100,4 +100,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get denominator => 'Знаменник';
+
+  @override
+  String get allGroups => 'Всі групи';
 }

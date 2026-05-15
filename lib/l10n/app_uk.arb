@@ -30,5 +30,6 @@
     "minOneGroup": "Мінімум одна група повинна бути вибрана",
     "searchSchedule": "Пошук розкладу",
     "numerator": "Чисельник",
-    "denominator": "Знаменник"
+    "denominator": "Знаменник",
+    "allGroups": "Всі групи"
 }

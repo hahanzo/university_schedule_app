@@ -151,13 +151,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         return GroupSelector(
                           selectedGroups: selectedGroupsUpdated,
                           availableGroups: availableGroupsUpdated,
-                          onGroupToggle: (group) {
-                            if (selectedGroupsUpdated.contains(group)) {
-                              _cubit.removeGroup(group);
-                            } else {
-                              _cubit.addGroup(group);
-                            }
-                          },
+                          onGroupsChanged: (groups) => _cubit.loadMultipleGroups(groups),
                         );
                       },
                   orElse: () => const SizedBox(),
@@ -290,7 +284,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                   _,
                                   __,
                                   selectedGroups,
-                                  ___,
+                                  availableGroups,
                                   activeFilters,
                                   ____,
                                   _____,
@@ -308,7 +302,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                           ),
                                           child: Row(
                                             children: [
-                                              ...selectedGroups.map((group) {
+                                               if (selectedGroups.length == availableGroups.length && availableGroups.isNotEmpty)
+                                                 Padding(
+                                                   padding: const EdgeInsets.only(right: 8),
+                                                   child: Chip(
+                                                     label: Text(AppLocalizations.of(context)!.allGroups),
+                                                     onDeleted: () {
+                                                       if (selectedGroups.isNotEmpty) {
+                                                         _cubit.loadSchedule(selectedGroups.first);
+                                                       }
+                                                     },
+                                                     deleteIcon: const Icon(Icons.close, size: 16),
+                                                     backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                                   ),
+                                                 )
+                                               else
+                                                 ...selectedGroups.map((group) {
                                                 return Padding(
                                                   padding:
                                                       const EdgeInsets.only(
