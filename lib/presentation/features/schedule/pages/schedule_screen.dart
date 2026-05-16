@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/filter_keys.dart';
 import '../../../../core/injection.dart';
 import '../../../../core/utils/date_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -25,15 +27,12 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen> {
   late ScheduleCubit _cubit;
   bool _isFilterVisible = false;
-  ScheduleState? _lastLoadedState;
 
   @override
   void initState() {
     super.initState();
     _cubit = getIt<ScheduleCubit>();
-    _cubit.loadSchedule(
-      'КН-11-1',
-    ); // TODO: Extract magic string to user preferences later
+    _cubit.loadSchedule(AppConstants.defaultGroupId);
   }
 
   void _onDateChanged(DateTime newDate) {
@@ -177,6 +176,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   void _showGroupSelector() {
+    // Read state once before opening — GroupSelector manages its own local state.
+    final s = _cubit.state.loadedOrNull;
+    if (s == null) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -184,8 +187,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       builder: (context) => Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 0,
-          right: 0,
           top: 16,
         ),
         child: ClipRRect(
@@ -195,40 +196,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
           child: Container(
             color: Theme.of(context).colorScheme.surface,
-            child: BlocBuilder<ScheduleCubit, ScheduleState>(
-              bloc: _cubit,
-              builder: (context, state) {
-                state.maybeWhen(
-                  loaded: (_, __, ___, ____, _____, ______, _______, ________) {
-                    _lastLoadedState = state;
-                    return null;
-                  },
-                  orElse: () => null,
-                );
-
-                final displayState = _lastLoadedState ?? state;
-
-                return displayState.maybeWhen(
-                  loaded:
-                      (
-                        _,
-                        __,
-                        selectedGroupsUpdated,
-                        availableGroupsUpdated,
-                        _____,
-                        ______,
-                        _______,
-                        ________,
-                      ) {
-                        return GroupSelector(
-                          selectedGroups: selectedGroupsUpdated,
-                          availableGroups: availableGroupsUpdated,
-                          onGroupsChanged: (groups) => _cubit.loadMultipleGroups(groups),
-                        );
-                      },
-                  orElse: () => const SizedBox(),
-                );
-              },
+            child: GroupSelector(
+              selectedGroups: s.selectedGroup,
+              availableGroups: s.availableGroups,
+              onGroupsChanged: _cubit.loadMultipleGroups,
             ),
           ),
         ),
@@ -237,49 +208,36 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   void _openSelectionMenu(String filterKey) {
-    final state = _cubit.state;
+    final s = _cubit.state.loadedOrNull;
+    if (s == null) return;
 
     final filterLabels = {
-      'teacher': AppLocalizations.of(context)!.teacher,
-      'time': AppLocalizations.of(context)!.time,
-      'subject': AppLocalizations.of(context)!.subject,
+      FilterKeys.teacher: AppLocalizations.of(context)!.teacher,
+      FilterKeys.time:    AppLocalizations.of(context)!.time,
+      FilterKeys.subject: AppLocalizations.of(context)!.subject,
     };
 
-    state.maybeWhen(
-      loaded: (allLessons, _, __, ___, ____, selectedDate, _____, ______) {
-        List<String> options = [];
+    final options = switch (filterKey) {
+      FilterKeys.teacher => s.allLessons.map((l) => l.teacherName).toSet().toList()..sort(),
+      FilterKeys.subject => s.allLessons.map((l) => l.subjectName).toSet().toList()..sort(),
+      FilterKeys.time    => s.allLessons.map((l) => l.timeStart).toSet().toList()..sort(),
+      _ => <String>[],
+    };
 
-        switch (filterKey) {
-          case 'teacher':
-            options = allLessons.map((l) => l.teacherName).toSet().toList();
-            break;
-          case 'subject':
-            options = allLessons.map((l) => l.subjectName).toSet().toList();
-            break;
-          case 'time':
-            options = allLessons.map((l) => l.timeStart).toSet().toList();
-            break;
-        }
-
-        options.sort();
-
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (sheetContext) => SelectionBottomSheet(
-            title: filterLabels[filterKey] ?? filterKey,
-            items: options,
-            onItemSelected: (selected) {
-              final value = selected == 'RESET' ? null : selected;
-              if (filterKey == 'teacher') _cubit.applyFilter(teacher: value);
-              if (filterKey == 'subject') _cubit.applyFilter(subject: value);
-              if (filterKey == 'time') _cubit.applyFilter(time: value);
-            },
-          ),
-        );
-      },
-      orElse: () {},
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => SelectionBottomSheet(
+        title: filterLabels[filterKey] ?? filterKey,
+        items: options,
+        onItemSelected: (selected) {
+          final value = selected == 'RESET' ? null : selected;
+          if (filterKey == FilterKeys.teacher) _cubit.applyFilter(teacher: value);
+          if (filterKey == FilterKeys.subject) _cubit.applyFilter(subject: value);
+          if (filterKey == FilterKeys.time) _cubit.applyFilter(time: value);
+        },
+      ),
     );
   }
 
@@ -305,42 +263,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               BlocBuilder<ScheduleCubit, ScheduleState>(
                 bloc: _cubit,
                 builder: (context, state) {
-                  return state.maybeWhen(
-                    loaded:
-                        (
-                          _,
-                          __,
-                          ___,
-                          ____,
-                          _____,
-                          selectedDate,
-                          isGlobalSearch,
-                          ______,
-                        ) {
-                          return AnimatedSize(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                            child: isGlobalSearch
-                                ? const SizedBox(
-                                    width: double.infinity,
-                                    height: 0,
-                                  )
-                                : CalendarStrip(
-                                    selectedDate: selectedDate,
-                                    onDateSelected: _onDateChanged,
-                                    onMonthTap: () =>
-                                        _showDatePicker(selectedDate),
-                                    onPreviousMonth: () =>
-                                        _changeMonth(selectedDate, -1),
-                                    onNextMonth: () =>
-                                        _changeMonth(selectedDate, 1),
-                                    onTodayTap: () => _onDateChanged(
-                                      DateTime.now(),
-                                    ),
-                                  ),
-                          );
-                        },
-                    orElse: () => const SizedBox(),
+                  final s = state.loadedOrNull;
+                  if (s == null) return const SizedBox();
+
+                  return AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: s.isGlobalSearch
+                        ? const SizedBox(width: double.infinity, height: 0)
+                        : CalendarStrip(
+                            selectedDate: s.selectedDate,
+                            onDateSelected: _onDateChanged,
+                            onMonthTap: () => _showDatePicker(s.selectedDate),
+                            onPreviousMonth: () => _changeMonth(s.selectedDate, -1),
+                            onNextMonth: () => _changeMonth(s.selectedDate, 1),
+                            onTodayTap: () => _onDateChanged(DateTime.now()),
+                          ),
                   );
                 },
               ),
@@ -353,69 +291,56 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     ? BlocBuilder<ScheduleCubit, ScheduleState>(
                         bloc: _cubit,
                         builder: (context, state) {
-                          return state.maybeWhen(
-                            loaded:
-                                (
-                                  _,
-                                  __,
-                                  selectedGroups,
-                                  availableGroups,
-                                  activeFilters,
-                                  ____,
-                                  _____,
-                                  ______,
-                                ) {
-                                  return Column(
+                          final s = state.loadedOrNull;
+                          if (s == null) return const SizedBox.shrink();
+
+                          return Column(
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  child: Row(
                                     children: [
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: SingleChildScrollView(
-                                          scrollDirection: Axis.horizontal,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 8,
+                                      if (s.selectedGroup.length == s.availableGroups.length &&
+                                          s.availableGroups.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.only(right: 8),
+                                          child: Chip(
+                                            label: Text(AppLocalizations.of(context)!.allGroups),
+                                            onDeleted: () {
+                                              if (s.availableGroups.isNotEmpty) {
+                                                _cubit.loadSchedule(s.availableGroups.first);
+                                              }
+                                            },
+                                            deleteIcon: const Icon(Icons.close, size: 16),
+                                            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                           ),
-                                          child: Row(
-                                            children: [
-                                              if (selectedGroups.length == availableGroups.length && availableGroups.isNotEmpty)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(right: 8),
-                                                  child: Chip(
-                                                    label: Text(AppLocalizations.of(context)!.allGroups),
-                                                    onDeleted: () {
-                                                      if (availableGroups.isNotEmpty) {
-                                                        _cubit.loadSchedule(availableGroups.first);
-                                                      }
-                                                    },
-                                                    deleteIcon: const Icon(Icons.close, size: 16),
-                                                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                                                  ),
-                                                )
-                                              else
-                                                ..._buildGroupChips(context, selectedGroups, availableGroups),
-                                              Padding(
-                                                padding: const EdgeInsets.only(left: 4),
-                                                child: ActionChip(
-                                                  avatar: Icon(Icons.add, size: 16, color: Theme.of(context).colorScheme.onSurface),
-                                                  label: Text(AppLocalizations.of(context)!.add),
-                                                  onPressed: _showGroupSelector,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                        )
+                                      else
+                                        ..._buildGroupChips(context, s.selectedGroup, s.availableGroups),
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 4),
+                                        child: ActionChip(
+                                          avatar: Icon(Icons.add, size: 16, color: Theme.of(context).colorScheme.onSurface),
+                                          label: Text(AppLocalizations.of(context)!.add),
+                                          onPressed: _showGroupSelector,
                                         ),
                                       ),
-                                      FilterChipsBar(
-                                        onChipTap: (filterKey) =>
-                                            _openSelectionMenu(filterKey),
-                                        onClearFilter: (filterKey) =>
-                                            _cubit.clearFilter(filterKey),
-                                        activeFilters: activeFilters,
-                                      ),
                                     ],
-                                  );
-                                },
-                            orElse: () => const SizedBox.shrink(),
+                                  ),
+                                ),
+                              ),
+                              FilterChipsBar(
+                                onChipTap: _openSelectionMenu,
+                                onClearFilter: _cubit.clearFilter,
+                                activeFilters: s.activeFilters,
+                              ),
+                            ],
                           );
                         },
                       )
@@ -427,127 +352,101 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 child: BlocBuilder<ScheduleCubit, ScheduleState>(
                   bloc: _cubit,
                   builder: (context, state) {
-                    return state.when(
-                      initial: () => Center(
-                        child: Text(AppLocalizations.of(context)!.loading),
-                      ),
+                    final s = state.loadedOrNull;
+
+                    // Handle non-loaded states
+                    final nonLoaded = state.maybeWhen(
+                      initial: () => Center(child: Text(AppLocalizations.of(context)!.loading)),
                       loading: () => Center(
                         child: CircularProgressIndicator(
                           color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       error: (message) => Center(child: Text(message)),
-                      loaded:
-                          (
-                            _,
-                            __,
-                            ___,
-                            ____,
-                            _____,
-                            selectedDate,
-                            ______,
-                            scheduleItems,
-                          ) {
-                            return GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onHorizontalDragEnd: (details) {
-                                if (details.primaryVelocity == null) return;
-                                if (details.primaryVelocity! > 300) {
-                                  _onDateChanged(selectedDate.previousWorkday);
-                                } else if (details.primaryVelocity! < -300) {
-                                  _onDateChanged(selectedDate.nextWorkday);
-                                }
-                              },
-                              child: RefreshIndicator(
-                                onRefresh: () => _cubit.reloadFromCache(),
-                                color: Theme.of(context).colorScheme.primary,
-                                child: scheduleItems.isEmpty
-                                    ? Center(
-                                        child: Text(
-                                          AppLocalizations.of(
-                                            context,
-                                          )!.noResults,
-                                        ),
-                                      )
-                                    : ListView.builder(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 8,
-                                        ),
-                                        itemCount: scheduleItems.length,
-                                        itemBuilder: (context, index) {
-                                          final item = scheduleItems[index];
+                      orElse: () => null,
+                    );
+                    if (nonLoaded != null) return nonLoaded;
+                    if (s == null) return const SizedBox();
 
-                                          if (item is DayHeaderItem) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                top: 16,
-                                                bottom: 8,
-                                                left: 16,
-                                                right: 16,
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.calendar_today,
-                                                    size: 16,
-                                                    color: Theme.of(
-                                                      context,
-                                                    ).colorScheme.primary,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Text(
-                                                    _getLocalizedWeekday(
-                                                      context,
-                                                      item.weekday,
-                                                    ),
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .titleMedium
-                                                        ?.copyWith(
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: Theme.of(
-                                                            context,
-                                                          ).colorScheme.primary,
-                                                        ),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(
-                                                    child: Container(
-                                                      height: 1,
-                                                      color: Theme.of(context)
-                                                         .colorScheme
-                                                         .onSurface
-                                                         .withValues(alpha: 0.15),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          }
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onHorizontalDragEnd: (details) {
+                        if (details.primaryVelocity == null) return;
+                        if (details.primaryVelocity! > 300) {
+                          _onDateChanged(s.selectedDate.previousWorkday);
+                        } else if (details.primaryVelocity! < -300) {
+                          _onDateChanged(s.selectedDate.nextWorkday);
+                        }
+                      },
+                      child: RefreshIndicator(
+                        onRefresh: () => _cubit.reloadFromCache(),
+                        color: Theme.of(context).colorScheme.primary,
+                        child: s.scheduleItems.isEmpty
+                            ? Center(
+                                child: Text(
+                                  AppLocalizations.of(context)!.noResults,
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                itemCount: s.scheduleItems.length,
+                                itemBuilder: (context, index) {
+                                  final item = s.scheduleItems[index];
 
-                                          if (item is GroupHeaderItem) {
-                                            return GroupDivider(
-                                              groupName: item.groupName,
-                                            );
-                                          }
-
-                                          if (item is TimeDividerItem) {
-                                            return const TimeDivider();
-                                          }
-
-                                          if (item is LessonItem) {
-                                            return LessonCard(
-                                              lesson: item.lesson,
-                                            );
-                                          }
-
-                                          return const SizedBox();
-                                        },
+                                  if (item is DayHeaderItem) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 16, bottom: 8, left: 16, right: 16,
                                       ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.calendar_today,
+                                            size: 16,
+                                            color: Theme.of(context).colorScheme.primary,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            _getLocalizedWeekday(context, item.weekday),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Container(
+                                              height: 1,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.15),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+
+                                  if (item is GroupHeaderItem) {
+                                    return GroupDivider(groupName: item.groupName);
+                                  }
+
+                                  if (item is TimeDividerItem) {
+                                    return const TimeDivider();
+                                  }
+
+                                  if (item is LessonItem) {
+                                    return LessonCard(lesson: item.lesson);
+                                  }
+
+                                  return const SizedBox();
+                                },
                               ),
-                            );
-                          },
+                      ),
                     );
                   },
                 ),
