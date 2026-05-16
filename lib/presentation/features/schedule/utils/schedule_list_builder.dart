@@ -88,8 +88,9 @@ class ScheduleListBuilder {
           dividerIndex = displayList.indexWhere(
             (l) => !_isLessonPast(l.timeEnd),
           );
-          if (dividerIndex == -1 && displayList.isNotEmpty)
+          if (dividerIndex == -1 && displayList.isNotEmpty) {
             dividerIndex = displayList.length;
+          }
         }
 
         for (int i = 0; i < displayList.length; i++) {
@@ -120,8 +121,9 @@ class ScheduleListBuilder {
             if (i == dividerIndex) listItems.add(TimeDividerItem());
             listItems.add(LessonItem(currentGroupLessons[i]));
           }
-          if (dividerIndex == currentGroupLessons.length)
+          if (dividerIndex == currentGroupLessons.length) {
             listItems.add(TimeDividerItem());
+          }
 
           currentGroupLessons.clear();
         }

@@ -103,4 +103,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allGroups => 'All groups';
+
+  @override
+  String get today => 'Today';
 }

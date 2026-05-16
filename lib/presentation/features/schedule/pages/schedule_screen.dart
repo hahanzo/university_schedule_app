@@ -12,7 +12,7 @@ import '../widgets/time_divider.dart';
 import '../widgets/lesson_card.dart';
 import '../widgets/calendar_strip.dart';
 import '../widgets/schedule_header.dart';
-import '../widgets/group_selector.dart';
+import '../widgets/group_selector.dart' show GroupSelector, groupPrefix;
 import '../widgets/group_divider.dart';
 
 class ScheduleScreen extends StatefulWidget {
@@ -37,7 +37,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   void _onDateChanged(DateTime newDate) {
-    _cubit.changeDate(newDate);
+    _cubit.changeDate(newDate.closestWorkday);
   }
 
   String _getLocalizedWeekday(BuildContext context, int weekday) {
@@ -94,7 +94,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       lastDate: DateTime(2030),
     );
     if (picked != null && picked != currentDate) {
-      _cubit.changeDate(picked);
+      // Automatically jump to Monday if a weekend is picked
+      _cubit.changeDate(picked.closestWorkday);
     }
   }
 
@@ -102,6 +103,77 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     setState(() {
       _isFilterVisible = !_isFilterVisible;
     });
+  }
+
+  /// Builds smart chips: shows a prefix chip (e.g. "КН") when all subgroups
+  /// of that prefix are selected, otherwise shows individual group chips.
+  List<Widget> _buildGroupChips(
+    BuildContext context,
+    List<String> selectedGroups,
+    List<String> availableGroups,
+  ) {
+    // Group available groups by prefix
+    final Map<String, List<String>> byPrefix = {};
+    for (final g in availableGroups) {
+      (byPrefix[groupPrefix(g)] ??= []).add(g);
+    }
+
+    final chips = <Widget>[];
+    final handled = <String>{};
+
+    for (final group in selectedGroups) {
+      if (handled.contains(group)) continue;
+      final prefix = groupPrefix(group);
+      final allInCategory = byPrefix[prefix] ?? [group];
+      final allSelected =
+          allInCategory.every((g) => selectedGroups.contains(g));
+
+      if (allSelected && allInCategory.length > 1) {
+        // Show a single prefix chip for the whole category
+        chips.add(Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Chip(
+            label: Text(prefix),
+            onDeleted: () => _cubit.loadMultipleGroups(
+              selectedGroups
+                  .where((g) => groupPrefix(g) != prefix)
+                  .toList()
+                  .isNotEmpty
+                  ? selectedGroups
+                      .where((g) => groupPrefix(g) != prefix)
+                      .toList()
+                  : [allInCategory.first],
+            ),
+            deleteIcon: const Icon(Icons.close, size: 16),
+            backgroundColor: Theme.of(context)
+                .colorScheme
+                .primary
+                .withValues(alpha: 0.1),
+          ),
+        ));
+        handled.addAll(allInCategory);
+      } else {
+        // Show individual chip
+        chips.add(Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Chip(
+            label: Text(group),
+            onDeleted: selectedGroups.length > 1
+                ? () => _cubit.removeGroup(group)
+                : null,
+            deleteIcon: selectedGroups.length > 1
+                ? const Icon(Icons.close, size: 16)
+                : null,
+            backgroundColor: Theme.of(context)
+                .colorScheme
+                .primary
+                .withValues(alpha: 0.1),
+          ),
+        ));
+        handled.add(group);
+      }
+    }
+    return chips;
   }
 
   void _showGroupSelector() {
@@ -262,6 +334,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                         _changeMonth(selectedDate, -1),
                                     onNextMonth: () =>
                                         _changeMonth(selectedDate, 1),
+                                    onTodayTap: () => _onDateChanged(
+                                      DateTime.now(),
+                                    ),
                                   ),
                           );
                         },
@@ -302,68 +377,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                           ),
                                           child: Row(
                                             children: [
-                                               if (selectedGroups.length == availableGroups.length && availableGroups.isNotEmpty)
-                                                 Padding(
-                                                   padding: const EdgeInsets.only(right: 8),
-                                                   child: Chip(
-                                                     label: Text(AppLocalizations.of(context)!.allGroups),
-                                                     onDeleted: () {
-                                                       if (selectedGroups.isNotEmpty) {
-                                                         _cubit.loadSchedule(selectedGroups.first);
-                                                       }
-                                                     },
-                                                     deleteIcon: const Icon(Icons.close, size: 16),
-                                                     backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                                                   ),
-                                                 )
-                                               else
-                                                 ...selectedGroups.map((group) {
-                                                return Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        right: 8,
-                                                      ),
+                                              if (selectedGroups.length == availableGroups.length && availableGroups.isNotEmpty)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(right: 8),
                                                   child: Chip(
-                                                    label: Text(group),
-                                                    onDeleted:
-                                                        selectedGroups.length >
-                                                            1
-                                                        ? () => _cubit
-                                                              .removeGroup(
-                                                                group,
-                                                              )
-                                                        : null,
-                                                    deleteIcon:
-                                                        selectedGroups.length >
-                                                            1
-                                                        ? const Icon(
-                                                            Icons.close,
-                                                            size: 16,
-                                                          )
-                                                        : null,
-                                                    backgroundColor:
-                                                        Theme.of(context)
-                                                            .colorScheme
-                                                            .primary
-                                                            .withValues(alpha: 0.1),
+                                                    label: Text(AppLocalizations.of(context)!.allGroups),
+                                                    onDeleted: () {
+                                                      if (availableGroups.isNotEmpty) {
+                                                        _cubit.loadSchedule(availableGroups.first);
+                                                      }
+                                                    },
+                                                    deleteIcon: const Icon(Icons.close, size: 16),
+                                                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                                   ),
-                                                );
-                                              }),
+                                                )
+                                              else
+                                                ..._buildGroupChips(context, selectedGroups, availableGroups),
                                               Padding(
-                                                padding: const EdgeInsets.only(
-                                                  left: 4,
-                                                ),
+                                                padding: const EdgeInsets.only(left: 4),
                                                 child: ActionChip(
-                                                  avatar: Icon(
-                                                    Icons.add,
-                                                    size: 16,
-                                                    color: Theme.of(context).colorScheme.onSurface,
-                                                  ),
-                                                  label: Text(
-                                                    AppLocalizations.of(
-                                                      context,
-                                                    )!.add,
-                                                  ),
+                                                  avatar: Icon(Icons.add, size: 16, color: Theme.of(context).colorScheme.onSurface),
+                                                  label: Text(AppLocalizations.of(context)!.add),
                                                   onPressed: _showGroupSelector,
                                                 ),
                                               ),
@@ -425,10 +459,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                 }
                               },
                               child: RefreshIndicator(
-                                onRefresh: () async {
-                                  _cubit.changeDate(DateTime.now());
-                                  await _cubit.loadSchedule('КН-11-1');
-                                },
+                                onRefresh: () => _cubit.reloadFromCache(),
                                 color: Theme.of(context).colorScheme.primary,
                                 child: scheduleItems.isEmpty
                                     ? Center(

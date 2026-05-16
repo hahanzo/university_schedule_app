@@ -31,5 +31,6 @@
     "searchSchedule": "Пошук розкладу",
     "numerator": "Чисельник",
     "denominator": "Знаменник",
-    "allGroups": "Всі групи"
+    "allGroups": "Всі групи",
+    "today": "Сьогодні"
 }

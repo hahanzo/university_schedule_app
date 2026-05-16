@@ -31,5 +31,6 @@
     "searchSchedule": "Search schedule",
     "numerator": "Numerator",
     "denominator": "Denominator",
-    "allGroups": "All groups"
+    "allGroups": "All groups",
+    "today": "Today"
 }

@@ -103,4 +103,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get allGroups => 'Всі групи';
+
+  @override
+  String get today => 'Сьогодні';
 }

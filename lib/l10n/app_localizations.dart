@@ -289,6 +289,12 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Всі групи'**
   String get allGroups;
+
+  /// No description provided for @today.
+  ///
+  /// In uk, this message translates to:
+  /// **'Сьогодні'**
+  String get today;
 }
 
 class _AppLocalizationsDelegate

@@ -16,9 +16,11 @@ Future<void> configureDependencies() async {
   );
   
   firestore.useFirestoreEmulator(host, 8080);
-  
+
+  // Enable local disk cache — all Firestore reads are persisted offline
   firestore.settings = const Settings(
-    persistenceEnabled: false,
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
 
   getIt.registerSingleton<FirebaseFirestore>(firestore);

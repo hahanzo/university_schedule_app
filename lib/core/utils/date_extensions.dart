@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
 
 extension DateTimeX on DateTime {
+  bool get isWeekend => weekday == DateTime.saturday || weekday == DateTime.sunday;
+
+  // Returns next Monday from any date (used to skip weekends)
+  DateTime get nextMonday {
+    final daysUntilMonday = DateTime.monday - weekday;
+    return add(Duration(days: daysUntilMonday <= 0 ? daysUntilMonday + 7 : daysUntilMonday));
+  }
+
+  // If this date is a weekend, returns next Monday; otherwise returns itself
+  DateTime get closestWorkday => isWeekend ? nextMonday : this;
+
   DateTime get nextWorkday {
     DateTime next = add(const Duration(days: 1));
     while (next.weekday > 5) {
