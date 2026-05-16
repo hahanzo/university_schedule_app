@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:collection/collection.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/filter_keys.dart';
@@ -12,7 +13,11 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   final ScheduleRepository _repository;
 
   StreamSubscription<List<LessonDto>>? _watchSubscription;
+  StreamController<List<LessonDto>>? _mergeController;
+  List<List<StreamSubscription<List<LessonDto>>>> _mergeSubscriptions = [];
   List<String> _watchedGroupIds = [];
+
+  static const _groupListEq = ListEquality<String>();
 
   ScheduleCubit(this._repository) : super(const ScheduleState.initial());
 
@@ -22,6 +27,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   @override
   Future<void> close() {
     _watchSubscription?.cancel();
+    _closeMergeController();
     return super.close();
   }
 
@@ -165,13 +171,17 @@ class ScheduleCubit extends Cubit<ScheduleState> {
 
   // Subscribes to Firestore real-time stream; auto-updates UI on remote changes.
   void _subscribeToUpdates(List<String> groupIds) {
-    // Skip re-subscription if watching the same groups.
-    if (_watchedGroupIds.join(',') == groupIds.join(',') &&
-        _watchSubscription != null) {
+    // Skip re-subscription when already watching exactly the same groups.
+    if (_watchSubscription != null &&
+        _groupListEq.equals(
+          [..._watchedGroupIds]..sort(),
+          [...groupIds]..sort(),
+        )) {
       return;
     }
 
     _watchSubscription?.cancel();
+    _closeMergeController();
     _watchedGroupIds = groupIds;
 
     if (groupIds.isEmpty) return;
@@ -196,22 +206,37 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   }
 
   // Merges multiple group streams into one combined list stream.
+  // All inner subscriptions and the controller are tracked for proper cleanup.
   Stream<List<LessonDto>> _mergeGroupStreams(List<String> groupIds) {
+    _closeMergeController();
+
     final streams = groupIds.map(_repository.watchScheduleByGroup).toList();
     final latestSnapshots = List<List<LessonDto>>.filled(streams.length, []);
     final controller = StreamController<List<LessonDto>>();
+    final innerSubs = <StreamSubscription<List<LessonDto>>>[];
 
     for (int i = 0; i < streams.length; i++) {
       final index = i;
-      streams[i].listen((data) {
+      innerSubs.add(streams[i].listen((data) {
         latestSnapshots[index] = data;
         if (!controller.isClosed) {
           controller.add(latestSnapshots.expand((l) => l).toList());
         }
-      });
+      }));
     }
 
+    _mergeController = controller;
+    _mergeSubscriptions = [innerSubs];
     return controller.stream;
+  }
+
+  void _closeMergeController() {
+    for (final sub in _mergeSubscriptions.expand((s) => s)) {
+      sub.cancel();
+    }
+    _mergeSubscriptions = [];
+    _mergeController?.close();
+    _mergeController = null;
   }
 
   List<LessonDto> _applyFiltersToLessons(
