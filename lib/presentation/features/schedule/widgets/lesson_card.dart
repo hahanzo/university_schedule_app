@@ -6,7 +6,15 @@ import '../../../../core/theme/app_theme.dart';
 class LessonCard extends StatelessWidget {
   final LessonDto lesson;
 
-  const LessonCard({super.key, required this.lesson});
+  /// When [true], shows the group ID instead of the teacher name.
+  /// Used by the teacher schedule screen where the teacher is already known.
+  final bool showGroupInstead;
+
+  const LessonCard({
+    super.key,
+    required this.lesson,
+    this.showGroupInstead = false,
+  });
 
   String? _getTranslatedType(BuildContext context, String type) {
     final t = type.toLowerCase();
@@ -33,6 +41,11 @@ class LessonCard extends StatelessWidget {
         lesson.teacherName.toLowerCase() != 'null';
     final bool hasRoom =
         lesson.roomName.isNotEmpty && lesson.roomName.toLowerCase() != 'null';
+    final bool hasGroup = lesson.groupId.isNotEmpty;
+
+    // Teacher mode: show group; student mode: show teacher name.
+    final bool showSecondaryRow =
+        showGroupInstead ? hasGroup || hasRoom : hasTeacher || hasRoom;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -114,11 +127,25 @@ class LessonCard extends StatelessWidget {
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
-                            if (hasTeacher || hasRoom) ...[
+                            if (showSecondaryRow) ...[
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  if (hasTeacher) ...[
+                                  if (showGroupInstead && hasGroup) ...[
+                                    const Icon(
+                                      Icons.group_outlined,
+                                      size: 16,
+                                      color: Colors.grey,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        lesson.groupId,
+                                        style: textTheme.bodySmall,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ] else if (!showGroupInstead && hasTeacher) ...[
                                     const Icon(
                                       Icons.person_outline,
                                       size: 16,

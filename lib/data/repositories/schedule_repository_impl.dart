@@ -10,8 +10,13 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   Query<Map<String, dynamic>> _groupQuery(String groupId) =>
       _firestore.collection('schedule').where('groupId', isEqualTo: groupId);
 
+  Query<Map<String, dynamic>> _teacherQuery(String teacherId) =>
+      _firestore.collection('schedule').where('teacherId', isEqualTo: teacherId);
+
   List<LessonDto> _mapDocs(QuerySnapshot<Map<String, dynamic>> snapshot) =>
       snapshot.docs.map((doc) => LessonDto.fromJson(doc.data())).toList();
+
+  // ── Group methods ──────────────────────────────────────────────────────────
 
   @override
   Future<List<LessonDto>> getScheduleByGroup(String groupId) async {
@@ -78,4 +83,80 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       throw Exception('Error loading groups from cache: $e');
     }
   }
-}
+
+  // ── Teacher methods ────────────────────────────────────────────────────────
+
+  @override
+  Future<List<LessonDto>> getScheduleByTeacher(String teacherId) async {
+    try {
+      final snapshot = await _teacherQuery(teacherId).get();
+      return _mapDocs(snapshot);
+    } catch (e) {
+      throw Exception('Error loading teacher schedule: $e');
+    }
+  }
+
+  @override
+  Future<List<LessonDto>> getScheduleByTeacherFromCache(String teacherId) async {
+    try {
+      final snapshot = await _teacherQuery(teacherId).get(
+        const GetOptions(source: Source.cache),
+      );
+      return _mapDocs(snapshot);
+    } on FirebaseException catch (e) {
+      if (e.code == 'unavailable') {
+        return getScheduleByTeacher(teacherId);
+      }
+      throw Exception('Error loading teacher schedule from cache: $e');
+    }
+  }
+
+  @override
+  Stream<List<LessonDto>> watchScheduleByTeacher(String teacherId) {
+    return _teacherQuery(teacherId)
+        .snapshots()
+        .map((snapshot) => _mapDocs(snapshot));
+  }
+
+  /// Returns a map of teacherId → teacherName from all schedule documents.
+  @override
+  Future<Map<String, String>> getAllAvailableTeachers() async {
+    try {
+      final snapshot = await _firestore.collection('schedule').get();
+      final map = <String, String>{};
+      for (final doc in snapshot.docs) {
+        final id = doc['teacherId'] as String? ?? '';
+        final name = doc['teacherName'] as String? ?? '';
+        if (id.isNotEmpty && name.isNotEmpty) map[id] = name;
+      }
+      return Map.fromEntries(
+        map.entries.toList()..sort((a, b) => a.value.compareTo(b.value)),
+      );
+    } catch (e) {
+      throw Exception('Error loading available teachers: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, String>> getAllAvailableTeachersFromCache() async {
+    try {
+      final snapshot = await _firestore
+          .collection('schedule')
+          .get(const GetOptions(source: Source.cache));
+      final map = <String, String>{};
+      for (final doc in snapshot.docs) {
+        final id = doc['teacherId'] as String? ?? '';
+        final name = doc['teacherName'] as String? ?? '';
+        if (id.isNotEmpty && name.isNotEmpty) map[id] = name;
+      }
+      return Map.fromEntries(
+        map.entries.toList()..sort((a, b) => a.value.compareTo(b.value)),
+      );
+    } on FirebaseException catch (e) {
+      if (e.code == 'unavailable') {
+        return getAllAvailableTeachers();
+      }
+      throw Exception('Error loading teachers from cache: $e');
+    }
+  }
+}

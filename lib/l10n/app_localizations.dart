@@ -295,6 +295,30 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Сьогодні'**
   String get today;
+
+  /// No description provided for @group.
+  ///
+  /// In uk, this message translates to:
+  /// **'Група'**
+  String get group;
+
+  /// No description provided for @students.
+  ///
+  /// In uk, this message translates to:
+  /// **'Студенти'**
+  String get students;
+
+  /// No description provided for @teachers.
+  ///
+  /// In uk, this message translates to:
+  /// **'Викладачі'**
+  String get teachers;
+
+  /// No description provided for @search.
+  ///
+  /// In uk, this message translates to:
+  /// **'Пошук'**
+  String get search;
 }
 
 class _AppLocalizationsDelegate

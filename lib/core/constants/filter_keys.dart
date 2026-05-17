@@ -2,5 +2,6 @@
 abstract final class FilterKeys {
   static const teacher = 'teacher';
   static const subject = 'subject';
-  static const time = 'time';
+  static const time    = 'time';
+  static const group   = 'group';
 }

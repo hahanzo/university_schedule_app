@@ -15,14 +15,15 @@ class SelectionBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: Theme.of(context).textTheme.titleMedium),
@@ -30,7 +31,7 @@ class SelectionBottomSheet extends StatelessWidget {
           Flexible(
             child: ListView.separated(
               shrinkWrap: true,
-              itemCount: items.length,
+              itemCount: items.length + 1,
               separatorBuilder: (context, index) => Divider(
                 color: Theme.of(
                   context,
@@ -67,17 +68,19 @@ class SelectionBottomSheet extends StatelessWidget {
                   );
                 }
 
+                final item = items[index - 1];
+
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(
-                    items[index],
+                    item,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   onTap: () {
-                    onItemSelected(items[index]);
+                    onItemSelected(item);
                     Navigator.pop(context);
                   },
                 );
@@ -86,6 +89,7 @@ class SelectionBottomSheet extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }
