@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:university_schedule_app/core/constants/filter_keys.dart';
 import 'package:university_schedule_app/l10n/app_localizations.dart';
 
 class FilterChipsBar extends StatelessWidget {
@@ -16,9 +17,9 @@ class FilterChipsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final filterCategories = [
-      {'label': AppLocalizations.of(context)!.teacher, 'key': 'teacher'},
-      {'label': AppLocalizations.of(context)!.time, 'key': 'time'},
-      {'label': AppLocalizations.of(context)!.subject, 'key': 'subject'},
+      {'label': AppLocalizations.of(context)!.teacher, 'key': FilterKeys.teacher},
+      {'label': AppLocalizations.of(context)!.time,    'key': FilterKeys.time},
+      {'label': AppLocalizations.of(context)!.subject, 'key': FilterKeys.subject},
     ];
 
     return SizedBox(
