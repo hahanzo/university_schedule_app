@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../../../core/utils/auth_validators.dart';
 import '../blocs/auth_cubit.dart';
 import '../blocs/auth_state.dart';
 
@@ -55,7 +56,10 @@ class CustomTextField extends StatelessWidget {
         keyboardType: keyboardType,
         decoration: InputDecoration(
           hintText: hint,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
           border: InputBorder.none,
         ),
         style: const TextStyle(fontSize: 15),
@@ -70,6 +74,11 @@ Widget _textField({
   required TextEditingController controller,
   bool obscure = false,
   TextInputType? keyboard,
+  String? Function(String?)? validator,
+  TextInputAction? textInputAction,
+  void Function(String)? onFieldSubmitted,
+  void Function(String)? onChanged,
+  AutovalidateMode? autovalidateMode,
 }) {
   return Container(
     margin: const EdgeInsets.only(bottom: 14),
@@ -77,15 +86,24 @@ Widget _textField({
       color: const Color(0xFFE2E7DE),
       borderRadius: BorderRadius.circular(4),
     ),
-    child: TextField(
+    child: TextFormField(
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboard,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
+      onChanged: onChanged,
+      validator: validator,
+      autovalidateMode: autovalidateMode ?? AutovalidateMode.onUserInteraction,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Color(0xFF777777)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: InputBorder.none,
+        errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 12),
       ),
       style: const TextStyle(fontSize: 15),
     ),
@@ -101,6 +119,15 @@ void _openModal(BuildContext context, Widget child) {
     backgroundColor: Colors.transparent,
     builder: (_) => child,
   );
+}
+
+class _AuthModalDrafts {
+  static String signInEmail = '';
+  static String signInPassword = '';
+  static String signUpName = '';
+  static String signUpEmail = '';
+  static String signUpPassword = '';
+  static String resetEmail = '';
 }
 
 class GoogleSignInButton extends StatelessWidget {
@@ -131,7 +158,10 @@ class GoogleSignInButton extends StatelessWidget {
             const SizedBox(width: 10),
             const Text(
               'Continue with Google',
-              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -149,21 +179,34 @@ class SignInModal extends StatefulWidget {
 }
 
 class _SignInModalState extends State<SignInModal> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.text = _AuthModalDrafts.signInEmail;
+    _passwordController.text = _AuthModalDrafts.signInPassword;
+  }
+
+  @override
   void dispose() {
+    _AuthModalDrafts.signInEmail = _emailController.text;
+    _AuthModalDrafts.signInPassword = _passwordController.text;
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   void _submit() {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
     context.read<AuthCubit>().signIn(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
   }
 
   @override
@@ -176,6 +219,11 @@ class _SignInModalState extends State<SignInModal> {
               Navigator.of(context).pop();
             }
           },
+          error: (message) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(message)));
+          },
           orElse: () {},
         );
       },
@@ -187,94 +235,120 @@ class _SignInModalState extends State<SignInModal> {
           child: Container(
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
             ),
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Sign In',
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2C5E3B),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Enter your details below',
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-                const SizedBox(height: 20),
-                _textField(hint: 'Email', controller: _emailController, keyboard: TextInputType.emailAddress),
-                _textField(hint: 'Password', controller: _passwordController, obscure: true),
-                // Forgot password — centered
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _openModal(context, const ForgotPasswordModal());
-                    },
-                    child: const Text(
-                      'Forgot password?',
-                      style: TextStyle(color: Colors.grey),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Sign In',
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2C5E3B),
                     ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: FilledButton(
-                    onPressed: _submit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF3C6E47),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Sign In',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Enter your details below',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                  const SizedBox(height: 20),
+                  _textField(
+                    hint: 'Email',
+                    controller: _emailController,
+                    keyboard: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    validator: (value) => AuthValidators.validateEmail(
+                      value,
+                      enforceDomain: true,
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                const Text('Or sign in with', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                const SizedBox(height: 14),
-                GoogleSignInButton(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Not implemented yet')),
+                  _textField(
+                    hint: 'Password',
+                    controller: _passwordController,
+                    obscure: true,
+                    textInputAction: TextInputAction.done,
+                    validator: AuthValidators.validateSignInPassword,
+                    onFieldSubmitted: (_) => _submit(),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Don't have an account? ", style: TextStyle(color: Colors.grey, fontSize: 13)),
-                    GestureDetector(
-                      onTap: () {
+                  // Forgot password — centered
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
                         Navigator.pop(context);
-                        _openModal(context, const SignUpModal());
+                        _openModal(context, const ForgotPasswordModal());
                       },
                       child: const Text(
-                        'Create one!',
+                        'Forgot password?',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: FilledButton(
+                      onPressed: _submit,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF3C6E47),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Sign In',
                         style: TextStyle(
-                          color: Color(0xFF3C6E47),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Or sign in with',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                  const SizedBox(height: 14),
+                  GoogleSignInButton(
+                    onPressed: () =>
+                        context.read<AuthCubit>().signInWithGoogle(),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "Don't have an account? ",
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _openModal(context, const SignUpModal());
+                        },
+                        child: const Text(
+                          'Create one!',
+                          style: TextStyle(
+                            color: Color(0xFF3C6E47),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -292,12 +366,24 @@ class SignUpModal extends StatefulWidget {
 }
 
 class _SignUpModalState extends State<SignUpModal> {
+  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _nameController.text = _AuthModalDrafts.signUpName;
+    _emailController.text = _AuthModalDrafts.signUpEmail;
+    _passwordController.text = _AuthModalDrafts.signUpPassword;
+  }
+
+  @override
   void dispose() {
+    _AuthModalDrafts.signUpName = _nameController.text;
+    _AuthModalDrafts.signUpEmail = _emailController.text;
+    _AuthModalDrafts.signUpPassword = _passwordController.text;
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -305,11 +391,14 @@ class _SignUpModalState extends State<SignUpModal> {
   }
 
   void _submit() {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
     context.read<AuthCubit>().signUp(
-          _nameController.text.trim(),
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
+      _nameController.text.trim(),
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
   }
 
   @override
@@ -322,6 +411,11 @@ class _SignUpModalState extends State<SignUpModal> {
               Navigator.of(context).pop();
             }
           },
+          error: (message) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(message)));
+          },
           orElse: () {},
         );
       },
@@ -333,82 +427,113 @@ class _SignUpModalState extends State<SignUpModal> {
           child: Container(
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
             ),
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Sign Up',
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2C5E3B),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Enter your details below',
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-                const SizedBox(height: 20),
-                _textField(hint: 'Full Name', controller: _nameController),
-                _textField(hint: 'Email (@nltu.lviv.ua or @nltu.edu.ua)', controller: _emailController, keyboard: TextInputType.emailAddress),
-                _textField(hint: 'Password', controller: _passwordController, obscure: true),
-                const SizedBox(height: 6),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: FilledButton(
-                    onPressed: _submit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF3C6E47),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Sign Up',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Sign Up',
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2C5E3B),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                const Text('Or sign up with', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                const SizedBox(height: 14),
-                GoogleSignInButton(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Not implemented yet')),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Enter your details below',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Already have an account? ", style: TextStyle(color: Colors.grey, fontSize: 13)),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                        _openModal(context, const SignInModal());
-                      },
+                  const SizedBox(height: 20),
+                  _textField(
+                    hint: 'Full Name',
+                    controller: _nameController,
+                    textInputAction: TextInputAction.next,
+                    validator: AuthValidators.validateName,
+                  ),
+                  _textField(
+                    hint: 'Email (@nltu.lviv.ua or @nltu.edu.ua)',
+                    controller: _emailController,
+                    keyboard: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    validator: (value) => AuthValidators.validateEmail(
+                      value,
+                      enforceDomain: true,
+                    ),
+                  ),
+                  _textField(
+                    hint: 'Password',
+                    controller: _passwordController,
+                    obscure: true,
+                    textInputAction: TextInputAction.done,
+                    validator: AuthValidators.validatePassword,
+                    onFieldSubmitted: (_) => _submit(),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: FilledButton(
+                      onPressed: _submit,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF3C6E47),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                       child: const Text(
-                        'Sign In!',
+                        'Sign Up',
                         style: TextStyle(
-                          color: Color(0xFF3C6E47),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Or sign up with',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                  const SizedBox(height: 14),
+                  GoogleSignInButton(
+                    onPressed: () =>
+                        context.read<AuthCubit>().signInWithGoogle(),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "Already have an account? ",
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _openModal(context, const SignInModal());
+                        },
+                        child: const Text(
+                          'Sign In!',
+                          style: TextStyle(
+                            color: Color(0xFF3C6E47),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -426,89 +551,160 @@ class ForgotPasswordModal extends StatefulWidget {
 }
 
 class _ForgotPasswordModalState extends State<ForgotPasswordModal> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  String? _submitError;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.text = _AuthModalDrafts.resetEmail;
+  }
 
   @override
   void dispose() {
+    _AuthModalDrafts.resetEmail = _emailController.text;
     _emailController.dispose();
     super.dispose();
   }
 
-  void _submit() {
-    context.read<AuthCubit>().resetPassword(_emailController.text.trim());
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Instructions sent to email')),
+  Future<void> _submit() async {
+    if (_submitError != null) {
+      setState(() => _submitError = null);
+    }
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    final success = await context.read<AuthCubit>().resetPassword(
+      _emailController.text.trim(),
     );
-    Navigator.pop(context);
+
+    if (!mounted) {
+      return;
+    }
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Instructions sent to email')),
+      );
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+    return BlocListener<AuthCubit, AuthState>(
+      listener: (context, state) {
+        state.maybeWhen(
+          error: (message) {
+            if (!mounted) {
+              return;
+            }
+            setState(() => _submitError = message);
+          },
+          orElse: () {},
+        );
+      },
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Reset Password',
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C5E3B),
-                ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Enter your email to receive reset instructions',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              _textField(hint: 'Email', controller: _emailController, keyboard: TextInputType.emailAddress),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: FilledButton(
-                  onPressed: _submit,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF3C6E47),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Send Instructions',
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Reset Password',
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2C5E3B),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Enter your email to receive reset instructions',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  _textField(
+                    hint: 'Email',
+                    controller: _emailController,
+                    keyboard: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.done,
+                    validator: (value) => AuthValidators.validateEmail(
+                      value,
+                      enforceDomain: true,
+                    ),
+                    onFieldSubmitted: (_) => _submit(),
+                    onChanged: (_) {
+                      if (_submitError != null) {
+                        setState(() => _submitError = null);
+                      }
+                    },
+                  ),
+                  if (_submitError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        _submitError!,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: FilledButton(
+                      onPressed: _submit,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF3C6E47),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Send Instructions',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _openModal(context, const SignInModal());
+                    },
+                    child: const Text(
+                      'Back to Sign In',
+                      style: TextStyle(color: Color(0xFF3C6E47)),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _openModal(context, const SignInModal());
-                },
-                child: const Text(
-                  'Back to Sign In',
-                  style: TextStyle(color: Color(0xFF3C6E47)),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

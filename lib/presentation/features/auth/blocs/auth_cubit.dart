@@ -49,6 +49,18 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    emit(const AuthState.loading());
+    try {
+      final didSignIn = await _authRepository.signInWithGoogle();
+      if (!didSignIn) {
+        emit(const AuthState.unauthenticated());
+      }
+    } catch (e) {
+      emit(AuthState.error(_parseErrorMessage(e.toString())));
+    }
+  }
+
   Future<void> signOut() async {
     emit(const AuthState.loading());
     try {
@@ -58,13 +70,15 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<void> resetPassword(String email) async {
+  Future<bool> resetPassword(String email) async {
     emit(const AuthState.loading());
     try {
       await _authRepository.resetPassword(email);
       emit(const AuthState.unauthenticated()); // Or a specific reset state
+      return true;
     } catch (e) {
       emit(AuthState.error(_parseErrorMessage(e.toString())));
+      return false;
     }
   }
 
