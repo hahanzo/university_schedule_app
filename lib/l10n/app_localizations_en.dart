@@ -106,4 +106,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get today => 'Today';
+
+  @override
+  String get group => 'Group';
+
+  @override
+  String get students => 'Students';
+
+  @override
+  String get teachers => 'Teachers';
+
+  @override
+  String get search => 'Search';
 }

@@ -106,4 +106,16 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get today => 'Сьогодні';
+
+  @override
+  String get group => 'Група';
+
+  @override
+  String get students => 'Студенти';
+
+  @override
+  String get teachers => 'Викладачі';
+
+  @override
+  String get search => 'Пошук';
 }

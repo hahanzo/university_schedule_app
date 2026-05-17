@@ -32,5 +32,9 @@
     "numerator": "Numerator",
     "denominator": "Denominator",
     "allGroups": "All groups",
-    "today": "Today"
+    "today": "Today",
+    "group": "Group",
+    "students": "Students",
+    "teachers": "Teachers",
+    "search": "Search"
 }

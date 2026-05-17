@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/filter_keys.dart';
 import '../../../../core/utils/date_extensions.dart';
 import '../../../../domain/repositories/schedule_repository.dart';
@@ -9,79 +8,82 @@ import '../../../../data/models/lesson_dto.dart';
 import '../utils/schedule_list_builder.dart';
 import 'schedule_state.dart';
 
-class ScheduleCubit extends Cubit<ScheduleState> {
+/// Cubit for the teacher schedule screen.
+/// Works identically to [ScheduleCubit] but fetches by teacherId instead of groupId,
+/// and uses [FilterKeys.group] instead of [FilterKeys.teacher] for filtering.
+class TeacherScheduleCubit extends Cubit<ScheduleState> {
   final ScheduleRepository _repository;
 
   StreamSubscription<List<LessonDto>>? _watchSubscription;
-  StreamController<List<LessonDto>>? _mergeController;
-  List<List<StreamSubscription<List<LessonDto>>>> _mergeSubscriptions = [];
-  List<String> _watchedGroupIds = [];
+  List<String> _watchedTeacherIds = [];
 
-  static const _groupListEq = ListEquality<String>();
+  static const _listEq = ListEquality<String>();
 
-  ScheduleCubit(this._repository) : super(const ScheduleState.initial());
+  TeacherScheduleCubit(this._repository) : super(const ScheduleState.initial());
 
-  // Shortcut to the current loaded state; null when not in loaded state.
   LoadedScheduleState? get _loaded => state.loadedOrNull;
 
   @override
   Future<void> close() {
     _watchSubscription?.cancel();
-    _closeMergeController();
     return super.close();
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
-  Future<void> loadSchedule(String groupId) =>
-      loadMultipleGroups([groupId]);
+  Future<void> loadTeacher(String teacherId) =>
+      loadMultipleTeachers([teacherId]);
 
-  Future<void> loadMultipleGroups(List<String> groupIds) async {
-    // Preserve current date when switching groups; fall back to today (workday).
+  /// Returns available teachers map (id → name) for UI pickers.
+  Future<Map<String, String>> getAvailableTeachers() =>
+      _repository.getAllAvailableTeachers();
+
+  Future<void> loadMultipleTeachers(List<String> teacherIds) async {
     final currentDate = _loaded?.selectedDate ?? DateTime.now().closestWorkday;
 
     emit(const ScheduleState.loading());
     try {
-      final availableGroups = await _repository.getAllAvailableGroups();
-      final lessons = await _fetchLessonsForGroups(groupIds);
+      // availableGroups reused to hold available teacher ids; availableTeachers map held separately
+      final teacherMap = await _repository.getAllAvailableTeachers();
+      final lessons = await _fetchLessonsForTeachers(teacherIds);
 
       _emitLoadedState(
         allLessons: lessons,
         filteredLessons: lessons,
-        selectedGroup: groupIds,
-        availableGroups: availableGroups,
+        selectedGroup: teacherIds,           // "selectedGroup" holds teacher IDs
+        availableGroups: teacherMap.keys.toList(), // available teacher IDs
         activeFilters: {},
         selectedDate: currentDate,
       );
 
-      // Subscribe to real-time Firestore updates for automatic sync.
-      _subscribeToUpdates(groupIds);
+      _subscribeToUpdates(teacherIds);
     } catch (e) {
       emit(ScheduleState.error(e.toString()));
     }
   }
 
-  /// Pull-to-refresh: reads from local cache, preserves all current state.
   Future<void> reloadFromCache() async {
     final s = _loaded;
-    final groupIds = s?.selectedGroup ?? [AppConstants.defaultGroupId];
+    final teacherIds = s?.selectedGroup ?? [];
     final currentDate = s?.selectedDate ?? DateTime.now().closestWorkday;
-    var availableGroups = s?.availableGroups ?? [];
+    var availableTeacherIds = s?.availableGroups ?? [];
     final activeFilters = s?.activeFilters ?? {};
 
-    try {
-      final lessons = await _fetchLessonsFromCache(groupIds);
+    if (teacherIds.isEmpty) return;
 
-      // On first launch the cache may be empty — fetch group list from cache.
-      if (availableGroups.isEmpty) {
-        availableGroups = await _repository.getAllAvailableGroupsFromCache();
+    try {
+      final lessons = await _fetchLessonsFromCache(teacherIds);
+
+      if (availableTeacherIds.isEmpty) {
+        final map = await _repository.getAllAvailableTeachersFromCache();
+        availableTeacherIds = map.keys.toList();
       }
 
       _emitLoadedState(
         allLessons: lessons,
         filteredLessons: lessons,
-        selectedGroup: groupIds,
-        availableGroups: availableGroups,
+        selectedGroup: teacherIds,
+        availableGroups: availableTeacherIds,
         activeFilters: activeFilters,
         selectedDate: currentDate,
       );
@@ -96,18 +98,6 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     _emitFromLoaded(s, selectedDate: newDate);
   }
 
-  void addGroup(String groupId) {
-    final s = _loaded;
-    if (s == null || s.selectedGroup.contains(groupId)) return;
-    loadMultipleGroups([...s.selectedGroup, groupId]);
-  }
-
-  void removeGroup(String groupId) {
-    final s = _loaded;
-    if (s == null || s.selectedGroup.length <= 1) return;
-    loadMultipleGroups(s.selectedGroup.where((g) => g != groupId).toList());
-  }
-
   void searchLessons(String query) {
     final s = _loaded;
     if (s == null) return;
@@ -117,10 +107,9 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       return;
     }
 
-    // Compute lowercase query once — not inside the loop.
     final lowerQuery = query.toLowerCase();
     final filtered = s.allLessons.where((lesson) {
-      return '${lesson.subjectName} ${lesson.teacherName}'
+      return '${lesson.subjectName} ${lesson.groupId}'
           .toLowerCase()
           .contains(lowerQuery);
     }).toList();
@@ -128,12 +117,12 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     _emitFromLoaded(s, filteredLessons: filtered);
   }
 
-  void applyFilter({String? teacher, String? subject, String? time}) {
+  void applyFilter({String? group, String? subject, String? time}) {
     final s = _loaded;
     if (s == null) return;
 
     final updatedFilters = Map<String, String?>.from(s.activeFilters);
-    if (teacher != null) updatedFilters[FilterKeys.teacher] = teacher;
+    if (group != null) updatedFilters[FilterKeys.group] = group;
     if (subject != null) updatedFilters[FilterKeys.subject] = subject;
     if (time != null) updatedFilters[FilterKeys.time] = time;
 
@@ -153,42 +142,39 @@ class ScheduleCubit extends Cubit<ScheduleState> {
 
   // ── Private helpers ────────────────────────────────────────────────────────
 
-  Future<List<LessonDto>> _fetchLessonsForGroups(List<String> groupIds) async {
+  Future<List<LessonDto>> _fetchLessonsForTeachers(List<String> teacherIds) async {
     final results = await Future.wait(
-      groupIds.map((id) => _repository.getScheduleByGroup(id)),
+      teacherIds.map((id) => _repository.getScheduleByTeacher(id)),
     );
     return results.expand((l) => l).toList()
       ..sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber));
   }
 
-  Future<List<LessonDto>> _fetchLessonsFromCache(List<String> groupIds) async {
+  Future<List<LessonDto>> _fetchLessonsFromCache(List<String> teacherIds) async {
     final results = await Future.wait(
-      groupIds.map((id) => _repository.getScheduleByGroupFromCache(id)),
+      teacherIds.map((id) => _repository.getScheduleByTeacherFromCache(id)),
     );
     return results.expand((l) => l).toList()
       ..sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber));
   }
 
-  // Subscribes to Firestore real-time stream; auto-updates UI on remote changes.
-  void _subscribeToUpdates(List<String> groupIds) {
-    // Skip re-subscription when already watching exactly the same groups.
+  void _subscribeToUpdates(List<String> teacherIds) {
     if (_watchSubscription != null &&
-        _groupListEq.equals(
-          [..._watchedGroupIds]..sort(),
-          [...groupIds]..sort(),
+        _listEq.equals(
+          [..._watchedTeacherIds]..sort(),
+          [...teacherIds]..sort(),
         )) {
       return;
     }
 
     _watchSubscription?.cancel();
-    _closeMergeController();
-    _watchedGroupIds = groupIds;
+    _watchedTeacherIds = teacherIds;
 
-    if (groupIds.isEmpty) return;
+    if (teacherIds.isEmpty) return;
 
-    final stream = groupIds.length == 1
-        ? _repository.watchScheduleByGroup(groupIds.first)
-        : _mergeGroupStreams(groupIds);
+    final stream = teacherIds.length == 1
+        ? _repository.watchScheduleByTeacher(teacherIds.first)
+        : _mergeTeacherStreams(teacherIds);
 
     _watchSubscription = stream.listen(
       (remoteData) {
@@ -199,44 +185,24 @@ class ScheduleCubit extends Cubit<ScheduleState> {
           _emitFromLoaded(s, allLessons: remoteData, filteredLessons: filtered);
         }
       },
-      onError: (_) {
-        // Stream errors are non-fatal; cached data remains visible.
-      },
+      onError: (_) {},
     );
   }
 
-  // Merges multiple group streams into one combined list stream.
-  // All inner subscriptions and the controller are tracked for proper cleanup.
-  Stream<List<LessonDto>> _mergeGroupStreams(List<String> groupIds) {
-    _closeMergeController();
-
-    final streams = groupIds.map(_repository.watchScheduleByGroup).toList();
+  Stream<List<LessonDto>> _mergeTeacherStreams(List<String> teacherIds) {
+    final streams = teacherIds.map(_repository.watchScheduleByTeacher).toList();
     final latestSnapshots = List<List<LessonDto>>.filled(streams.length, []);
     final controller = StreamController<List<LessonDto>>();
-    final innerSubs = <StreamSubscription<List<LessonDto>>>[];
-
     for (int i = 0; i < streams.length; i++) {
       final index = i;
-      innerSubs.add(streams[i].listen((data) {
+      streams[i].listen((data) {
         latestSnapshots[index] = data;
         if (!controller.isClosed) {
           controller.add(latestSnapshots.expand((l) => l).toList());
         }
-      }));
+      });
     }
-
-    _mergeController = controller;
-    _mergeSubscriptions = [innerSubs];
     return controller.stream;
-  }
-
-  void _closeMergeController() {
-    for (final sub in _mergeSubscriptions.expand((s) => s)) {
-      sub.cancel();
-    }
-    _mergeSubscriptions = [];
-    _mergeController?.close();
-    _mergeController = null;
   }
 
   List<LessonDto> _applyFiltersToLessons(
@@ -244,9 +210,11 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     Map<String, String?> filters,
   ) {
     return lessons.where((lesson) {
-      if (filters[FilterKeys.teacher] != null &&
-          lesson.teacherName != filters[FilterKeys.teacher]) {
-        return false;
+      if (filters[FilterKeys.group] != null) {
+        final allowedGroups = filters[FilterKeys.group]!.split(',');
+        if (!allowedGroups.contains(lesson.groupId)) {
+          return false;
+        }
       }
       if (filters[FilterKeys.subject] != null &&
           lesson.subjectName != filters[FilterKeys.subject]) {
@@ -268,8 +236,6 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     return false;
   }
 
-  /// Emits a new loaded state from an existing one, overriding only specified fields.
-  /// Automatically rebuilds [scheduleItems] and [isGlobalSearch].
   void _emitFromLoaded(
     LoadedScheduleState s, {
     List<LessonDto>? allLessons,
@@ -306,6 +272,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       selectedGroup: selectedGroup,
       activeFilters: activeFilters,
       selectedDate: selectedDate,
+      isTeacherMode: true,
     );
 
     emit(ScheduleState.loaded(

@@ -5,7 +5,7 @@ import '../../../../core/constants/filter_keys.dart';
 import '../../../../core/injection.dart';
 import '../../../../core/utils/date_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../blocs/schedule_cubit.dart';
+import '../blocs/student_schedule_cubit.dart';
 import '../blocs/schedule_state.dart';
 import '../models/schedule_list_item.dart';
 import '../widgets/filter_chips_bar.dart';
@@ -17,21 +17,21 @@ import '../widgets/schedule_header.dart';
 import '../widgets/group_selector.dart' show GroupSelector, groupPrefix;
 import '../widgets/group_divider.dart';
 
-class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key});
+class StudentScheduleScreen extends StatefulWidget {
+  const StudentScheduleScreen({super.key});
 
   @override
-  State<ScheduleScreen> createState() => _ScheduleScreenState();
+  State<StudentScheduleScreen> createState() => _StudentScheduleScreenState();
 }
 
-class _ScheduleScreenState extends State<ScheduleScreen> {
-  late ScheduleCubit _cubit;
+class _StudentScheduleScreenState extends State<StudentScheduleScreen> {
+  late StudentScheduleCubit _cubit;
   bool _isFilterVisible = false;
 
   @override
   void initState() {
     super.initState();
-    _cubit = getIt<ScheduleCubit>();
+    _cubit = getIt<StudentScheduleCubit>();
     _cubit.loadSchedule(AppConstants.defaultGroupId);
   }
 
@@ -124,16 +124,31 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       FilterKeys.subject: AppLocalizations.of(context)!.subject,
     };
 
+    final isNumerator = s.selectedDate.isNumeratorWeek;
+    final weekLessons = s.allLessons.where((l) {
+      final wt = l.weekType.toLowerCase();
+      if (wt.isEmpty || wt == 'all' || wt == 'both' || wt == 'always') return true;
+      return isNumerator ? wt == 'numerator' : wt == 'denominator';
+    }).toList();
+
     final options = switch (filterKey) {
-      FilterKeys.teacher => s.allLessons.map((l) => l.teacherName).toSet().toList()..sort(),
-      FilterKeys.subject => s.allLessons.map((l) => l.subjectName).toSet().toList()..sort(),
-      FilterKeys.time    => s.allLessons.map((l) => l.timeStart).toSet().toList()..sort(),
+      FilterKeys.teacher => weekLessons.map((l) => l.teacherName).toSet().toList()..sort(),
+      FilterKeys.subject => weekLessons.map((l) => l.subjectName).toSet().toList()..sort(),
+      FilterKeys.time    => weekLessons.map((l) => l.timeStart).toSet().toList()..sort((a, b) {
+          int parseTime(String t) {
+            final parts = t.split(':');
+            if (parts.length != 2) return 0;
+            return int.parse(parts[0]) * 60 + int.parse(parts[1]);
+          }
+          return parseTime(a).compareTo(parseTime(b));
+        }),
       _ => <String>[],
     };
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => SelectionBottomSheet(
         title: filterLabels[filterKey] ?? filterKey,
@@ -205,7 +220,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 // ─── Calendar Strip Section ──────────────────────────────────────────────────
 
 class _CalendarStripSection extends StatelessWidget {
-  final ScheduleCubit cubit;
+  final StudentScheduleCubit cubit;
   final void Function(DateTime) onDateChanged;
   final Future<void> Function(DateTime) onMonthTap;
   final void Function(DateTime, int) onChangeMonth;
@@ -219,7 +234,7 @@ class _CalendarStripSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ScheduleCubit, ScheduleState>(
+    return BlocBuilder<StudentScheduleCubit, ScheduleState>(
       bloc: cubit,
       // Only rebuild when selectedDate or isGlobalSearch changes
       buildWhen: (prev, curr) {
@@ -255,7 +270,7 @@ class _CalendarStripSection extends StatelessWidget {
 // ─── Filter Bar Section ──────────────────────────────────────────────────────
 
 class _FilterBarSection extends StatelessWidget {
-  final ScheduleCubit cubit;
+  final StudentScheduleCubit cubit;
   final VoidCallback onShowGroupSelector;
   final void Function(String) onOpenSelectionMenu;
 
@@ -326,7 +341,7 @@ class _FilterBarSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ScheduleCubit, ScheduleState>(
+    return BlocBuilder<StudentScheduleCubit, ScheduleState>(
       bloc: cubit,
       // Only rebuild when selected groups, available groups, or active filters change
       buildWhen: (prev, curr) {
@@ -394,7 +409,7 @@ class _FilterBarSection extends StatelessWidget {
 // ─── Lesson List Section ─────────────────────────────────────────────────────
 
 class _LessonListSection extends StatelessWidget {
-  final ScheduleCubit cubit;
+  final StudentScheduleCubit cubit;
   final void Function(DateTime) onDateChanged;
 
   const _LessonListSection({
@@ -418,7 +433,7 @@ class _LessonListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ScheduleCubit, ScheduleState>(
+    return BlocBuilder<StudentScheduleCubit, ScheduleState>(
       bloc: cubit,
       // Only rebuild when scheduleItems or selectedDate changes
       buildWhen: (prev, curr) {

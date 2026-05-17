@@ -9,6 +9,7 @@ class ScheduleListBuilder {
     required List<String> selectedGroup,
     required Map<String, String?> activeFilters,
     required DateTime selectedDate,
+    bool isTeacherMode = false,
   }) {
     final bool isSearching = filteredLessons.length != allLessons.length;
     final bool isGlobalSearch = isSearching || activeFilters.isNotEmpty;
@@ -22,7 +23,7 @@ class ScheduleListBuilder {
 
       // 2. Check week parity
       final wt = l.weekType.toLowerCase();
-      
+
       // If weekType is empty or explicitly says it's for all weeks, show it
       if (wt.isEmpty || wt == 'all' || wt == 'both' || wt == 'always') {
         return true;
@@ -49,8 +50,12 @@ class ScheduleListBuilder {
       }
 
       if (selectedGroup.length > 1) {
-        int indexA = selectedGroup.indexOf(a.groupId);
-        int indexB = selectedGroup.indexOf(b.groupId);
+        int indexA = selectedGroup.indexOf(
+          isTeacherMode ? a.teacherId : a.groupId,
+        );
+        int indexB = selectedGroup.indexOf(
+          isTeacherMode ? b.teacherId : b.groupId,
+        );
         int groupCompare = indexA.compareTo(indexB);
         if (groupCompare != 0) return groupCompare;
       }
@@ -70,8 +75,10 @@ class ScheduleListBuilder {
           listItems.add(DayHeaderItem(lesson.dayOfWeek));
         }
 
-        if (selectedGroup.length > 1 && currentGroup != lesson.groupId) {
-          currentGroup = lesson.groupId;
+        if (selectedGroup.length > 1 &&
+            currentGroup !=
+                (isTeacherMode ? lesson.teacherId : lesson.groupId)) {
+          currentGroup = isTeacherMode ? lesson.teacherId : lesson.groupId;
           listItems.add(GroupHeaderItem(currentGroup));
         }
 
@@ -129,9 +136,12 @@ class ScheduleListBuilder {
         }
 
         for (var lesson in displayList) {
-          if (currentGroup != lesson.groupId) {
+          String lessonGroup = isTeacherMode
+              ? lesson.teacherId
+              : lesson.groupId;
+          if (currentGroup != lessonGroup) {
             flushGroup();
-            currentGroup = lesson.groupId;
+            currentGroup = lessonGroup;
           }
           currentGroupLessons.add(lesson);
         }

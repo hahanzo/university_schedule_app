@@ -32,5 +32,9 @@
     "numerator": "Чисельник",
     "denominator": "Знаменник",
     "allGroups": "Всі групи",
-    "today": "Сьогодні"
+    "today": "Сьогодні",
+    "group": "Група",
+    "students": "Студенти",
+    "teachers": "Викладачі",
+    "search": "Пошук"
 }
