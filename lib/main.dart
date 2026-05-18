@@ -11,9 +11,11 @@ import 'presentation/features/auth/blocs/auth_cubit.dart';
 import 'presentation/features/auth/blocs/auth_state.dart';
 import 'presentation/features/auth/pages/profile_setup_screen.dart';
 import 'presentation/features/auth/pages/startup_screen.dart';
+import 'presentation/features/chat/pages/chat_rooms_screen.dart';
 import 'presentation/features/settings/blocs/settings_cubit.dart';
 import 'presentation/features/settings/blocs/settings_state.dart';
 import 'presentation/features/settings/pages/settings_screen.dart';
+import 'data/models/user_profile.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/injection.dart';
@@ -101,18 +103,17 @@ class MyApp extends StatelessWidget {
                 return authState.maybeWhen(
                   authenticated: (user) {
                     final needsProfileSetup =
-                        user.role != AppConstants.teacherRole &&
-                        (user.groupId == null || user.groupId!.trim().isEmpty);
+                      user.role == AppConstants.teacherRole
+                        ? (user.teacherId == null ||
+                          user.teacherId!.trim().isEmpty)
+                        : (user.groupId == null ||
+                          user.groupId!.trim().isEmpty);
 
                     if (needsProfileSetup) {
                       return ProfileSetupScreen(userProfile: user);
                     }
 
-                    return _RootScaffold(
-                      userRole: user.role,
-                      groupId: user.groupId,
-                      teacherId: user.teacherId,
-                    );
+                    return _RootScaffold(userProfile: user);
                   },
                   orElse: () => const StartupScreen(),
                 );
@@ -126,13 +127,9 @@ class MyApp extends StatelessWidget {
 }
 
 class _RootScaffold extends StatefulWidget {
-  final String userRole;
-  final String? groupId;
-  final String? teacherId;
+  final UserProfile userProfile;
   const _RootScaffold({
-    required this.userRole,
-    this.groupId,
-    this.teacherId,
+    required this.userProfile,
   });
 
   @override
@@ -143,10 +140,12 @@ class _RootScaffoldState extends State<_RootScaffold> {
   int _selectedIndex = 0;
 
   Widget _buildSchedulePage() {
-    if (widget.userRole == AppConstants.teacherRole) {
-      return TeacherScheduleScreen(initialTeacherId: widget.teacherId);
+    if (widget.userProfile.role == AppConstants.teacherRole) {
+      return TeacherScheduleScreen(
+        initialTeacherId: widget.userProfile.teacherId,
+      );
     }
-    return StudentScheduleScreen(initialGroupId: widget.groupId);
+    return StudentScheduleScreen(initialGroupId: widget.userProfile.groupId);
   }
 
   @override
@@ -154,6 +153,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
     final l10n = AppLocalizations.of(context)!;
     final pages = [
       _buildSchedulePage(),
+      ChatRoomsScreen(userProfile: widget.userProfile),
       const SettingsScreen(),
     ];
     return Scaffold(
@@ -166,6 +166,11 @@ class _RootScaffoldState extends State<_RootScaffold> {
             icon: const Icon(Icons.calendar_month_outlined),
             selectedIcon: const Icon(Icons.calendar_month),
             label: l10n.schedule,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.chat_bubble_outline),
+            selectedIcon: const Icon(Icons.chat_bubble),
+            label: l10n.chat,
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

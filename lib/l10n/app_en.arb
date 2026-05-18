@@ -33,6 +33,17 @@
     "selectTeacher": "Select your teacher",
     "searchTeacher": "Search teacher...",
     "retry": "Retry",
+    "chat": "Chat",
+    "messageHint": "Type a message",
+    "send": "Send",
+    "noMessages": "No messages yet",
+    "typing": "Typing:",
+    "sent": "Sent",
+    "delivered": "Delivered",
+    "read": "Read",
+    "noChats": "No chats available",
+    "chatLoadError": "Could not load chats",
+    "activeOnly": "Show only active chats",
     "schedule": "Schedule",
     "numerator": "Numerator",
     "denominator": "Denominator",
@@ -75,5 +86,6 @@
     "noTestAccounts": "No test accounts.\nRun seed_db.dart script",
     "emulatorMode": "Emulator mode",
     "chooseRoleForTesting": "Choose role for testing",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "members": "Members"
 }

@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/dev_constants.dart';
+import '../../../../core/utils/string_extensions.dart';
 import '../../../../core/injection.dart';
 import '../../../../data/models/user_profile.dart';
 import '../../../../domain/repositories/schedule_repository.dart';
@@ -150,7 +151,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     final ImageProvider? avatarImage = _pickedAvatar != null
         ? FileImage(File(_pickedAvatar!.path))
         : avatarUrl.isNotEmpty
-            ? NetworkImage(avatarUrl)
+            ? NetworkImage(avatarUrl.resolveEmulatorUrl())
             : null;
 
     return Scaffold(
@@ -174,9 +175,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: l10n.fullName,
-                  helperText: _isTeacher
-                      ? 'This name appears in the schedule as the teacher'
-                      : null,
                 ),
                 validator: _isTeacher
                     ? null
@@ -225,17 +223,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              if (_socialEntries.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    l10n.noResults,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
+
               ..._socialEntries.asMap().entries.map((e) => SocialLinkRow(
                     key: ValueKey(e.key),
                     initialPlatform: e.value['platform'] ?? '',
@@ -297,14 +285,14 @@ class _AvatarSection extends StatelessWidget {
           CircleAvatar(
             radius: AvatarConstants.avatarRadius,
             backgroundColor: colorScheme.primaryContainer,
-            backgroundImage: avatarImage,
-            child: showAvatar
-                ? null
-                : Icon(
+            foregroundImage: avatarImage,
+            child: avatarImage == null
+                ? Icon(
                     Icons.person,
                     size: AvatarConstants.avatarIconSize,
                     color: colorScheme.onPrimaryContainer,
-                  ),
+                  )
+                : null,
           ),
           const SizedBox(height: 12),
           Wrap(

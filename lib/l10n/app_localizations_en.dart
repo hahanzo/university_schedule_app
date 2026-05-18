@@ -108,6 +108,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retry => 'Retry';
 
   @override
+  String get chat => 'Chat';
+
+  @override
+  String get messageHint => 'Type a message';
+
+  @override
+  String get send => 'Send';
+
+  @override
+  String get noMessages => 'No messages yet';
+
+  @override
+  String get typing => 'Typing:';
+
+  @override
+  String get sent => 'Sent';
+
+  @override
+  String get delivered => 'Delivered';
+
+  @override
+  String get read => 'Read';
+
+  @override
+  String get noChats => 'No chats available';
+
+  @override
+  String get chatLoadError => 'Could not load chats';
+
+  @override
+  String get activeOnly => 'Show only active chats';
+
+  @override
   String get schedule => 'Schedule';
 
   @override
@@ -236,4 +269,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancel => 'Cancel';
+
+  @override
+  String get members => 'Members';
 }

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/injection.dart';
+import '../../../../core/utils/string_extensions.dart';
 import '../../../../data/models/user_profile.dart';
 import '../../../../domain/repositories/schedule_repository.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -271,10 +272,6 @@ class _ProfileCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final avatarUrl = (userProfile.avatarUrl ?? '').trim();
-    final trimmedName = userProfile.name.trim();
-    final initials = trimmedName.isNotEmpty
-        ? trimmedName.substring(0, 1).toUpperCase()
-        : '?';
 
     return Card(
       margin: const EdgeInsets.only(
@@ -295,22 +292,15 @@ class _ProfileCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
+                _UserAvatar(
+                  avatarUrl: avatarUrl,
+                  name: userProfile.name,
                   radius: 28,
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  backgroundImage: avatarUrl.isNotEmpty
-                      ? NetworkImage(avatarUrl)
-                      : null,
-                  child: avatarUrl.isEmpty
-                      ? Text(
-                          initials,
-                          style: TextStyle(
-                            color: theme.colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        )
-                      : null,
+                  textStyle: TextStyle(
+                    color: theme.colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -429,6 +419,78 @@ class _MissingNameBanner extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UserAvatar extends StatelessWidget {
+  final String? avatarUrl;
+  final String name;
+  final double radius;
+  final TextStyle? textStyle;
+
+  const _UserAvatar({
+    required this.avatarUrl,
+    required this.name,
+    required this.radius,
+    this.textStyle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final initials = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
+    final url = (avatarUrl ?? '').trim().resolveEmulatorUrl();
+
+    final fallback = Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: textStyle ??
+            TextStyle(
+              fontSize: radius * 0.75,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onPrimaryContainer,
+            ),
+      ),
+    );
+
+    if (url.isEmpty) {
+      return fallback;
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: radius * 2,
+        height: radius * 2,
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return fallback;
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              width: radius * 2,
+              height: radius * 2,
+              color: theme.colorScheme.primaryContainer,
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: radius,
+                height: radius,
+                child: const CircularProgressIndicator(strokeWidth: 1.5),
+              ),
+            );
+          },
         ),
       ),
     );
