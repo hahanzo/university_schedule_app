@@ -272,6 +272,36 @@ abstract class AppLocalizations {
   /// **'Пошук розкладу'**
   String get searchSchedule;
 
+  /// No description provided for @selectGroup.
+  ///
+  /// In uk, this message translates to:
+  /// **'Виберіть свою групу'**
+  String get selectGroup;
+
+  /// No description provided for @selectTeacher.
+  ///
+  /// In uk, this message translates to:
+  /// **'Виберіть свого викладача'**
+  String get selectTeacher;
+
+  /// No description provided for @searchTeacher.
+  ///
+  /// In uk, this message translates to:
+  /// **'Пошук викладача...'**
+  String get searchTeacher;
+
+  /// No description provided for @retry.
+  ///
+  /// In uk, this message translates to:
+  /// **'Спробувати ще раз'**
+  String get retry;
+
+  /// No description provided for @schedule.
+  ///
+  /// In uk, this message translates to:
+  /// **'Розклад'**
+  String get schedule;
+
   /// No description provided for @numerator.
   ///
   /// In uk, this message translates to:
@@ -319,6 +349,210 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Пошук'**
   String get search;
+
+  /// No description provided for @profile.
+  ///
+  /// In uk, this message translates to:
+  /// **'Профіль'**
+  String get profile;
+
+  /// No description provided for @fullName.
+  ///
+  /// In uk, this message translates to:
+  /// **'Повне імʼя'**
+  String get fullName;
+
+  /// No description provided for @editProfile.
+  ///
+  /// In uk, this message translates to:
+  /// **'Редагувати профіль'**
+  String get editProfile;
+
+  /// No description provided for @changePhoto.
+  ///
+  /// In uk, this message translates to:
+  /// **'Змінити фото'**
+  String get changePhoto;
+
+  /// No description provided for @removePhoto.
+  ///
+  /// In uk, this message translates to:
+  /// **'Видалити фото'**
+  String get removePhoto;
+
+  /// No description provided for @contacts.
+  ///
+  /// In uk, this message translates to:
+  /// **'Контакти'**
+  String get contacts;
+
+  /// No description provided for @status.
+  ///
+  /// In uk, this message translates to:
+  /// **'Статус'**
+  String get status;
+
+  /// No description provided for @phone.
+  ///
+  /// In uk, this message translates to:
+  /// **'Телефон'**
+  String get phone;
+
+  /// No description provided for @telegram.
+  ///
+  /// In uk, this message translates to:
+  /// **'Telegram'**
+  String get telegram;
+
+  /// No description provided for @instagram.
+  ///
+  /// In uk, this message translates to:
+  /// **'Instagram'**
+  String get instagram;
+
+  /// No description provided for @facebook.
+  ///
+  /// In uk, this message translates to:
+  /// **'Facebook'**
+  String get facebook;
+
+  /// No description provided for @whatsapp.
+  ///
+  /// In uk, this message translates to:
+  /// **'WhatsApp'**
+  String get whatsapp;
+
+  /// No description provided for @notSet.
+  ///
+  /// In uk, this message translates to:
+  /// **'Не вказано'**
+  String get notSet;
+
+  /// No description provided for @settings.
+  ///
+  /// In uk, this message translates to:
+  /// **'Налаштування'**
+  String get settings;
+
+  /// No description provided for @theme.
+  ///
+  /// In uk, this message translates to:
+  /// **'Тема'**
+  String get theme;
+
+  /// No description provided for @language.
+  ///
+  /// In uk, this message translates to:
+  /// **'Мова'**
+  String get language;
+
+  /// No description provided for @signOut.
+  ///
+  /// In uk, this message translates to:
+  /// **'Вийти'**
+  String get signOut;
+
+  /// No description provided for @system.
+  ///
+  /// In uk, this message translates to:
+  /// **'Системна'**
+  String get system;
+
+  /// No description provided for @light.
+  ///
+  /// In uk, this message translates to:
+  /// **'Світла'**
+  String get light;
+
+  /// No description provided for @dark.
+  ///
+  /// In uk, this message translates to:
+  /// **'Темна'**
+  String get dark;
+
+  /// No description provided for @ukrainian.
+  ///
+  /// In uk, this message translates to:
+  /// **'Українська'**
+  String get ukrainian;
+
+  /// No description provided for @english.
+  ///
+  /// In uk, this message translates to:
+  /// **'English'**
+  String get english;
+
+  /// No description provided for @addSocialLink.
+  ///
+  /// In uk, this message translates to:
+  /// **'Додати соцмережу'**
+  String get addSocialLink;
+
+  /// No description provided for @platform.
+  ///
+  /// In uk, this message translates to:
+  /// **'Платформа'**
+  String get platform;
+
+  /// No description provided for @linkOrContact.
+  ///
+  /// In uk, this message translates to:
+  /// **'Посилання / контакт'**
+  String get linkOrContact;
+
+  /// No description provided for @enterYourName.
+  ///
+  /// In uk, this message translates to:
+  /// **'Вкажіть ваше ім\'я'**
+  String get enterYourName;
+
+  /// No description provided for @nameIsDisplayedAsTeacher.
+  ///
+  /// In uk, this message translates to:
+  /// **'Ім\'я відображається у розкладі як викладач'**
+  String get nameIsDisplayedAsTeacher;
+
+  /// No description provided for @signInWithGoogle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Увійти через Google'**
+  String get signInWithGoogle;
+
+  /// No description provided for @useUniversityEmail.
+  ///
+  /// In uk, this message translates to:
+  /// **'Використовуйте пошту @nltu.lviv.ua або @nltu.edu.ua'**
+  String get useUniversityEmail;
+
+  /// No description provided for @errorPrefix.
+  ///
+  /// In uk, this message translates to:
+  /// **'Помилка'**
+  String get errorPrefix;
+
+  /// No description provided for @noTestAccounts.
+  ///
+  /// In uk, this message translates to:
+  /// **'Немає тестових акаунтів.\nЗапустіть скрипт seed_db.dart'**
+  String get noTestAccounts;
+
+  /// No description provided for @emulatorMode.
+  ///
+  /// In uk, this message translates to:
+  /// **'Режим емулятора'**
+  String get emulatorMode;
+
+  /// No description provided for @chooseRoleForTesting.
+  ///
+  /// In uk, this message translates to:
+  /// **'Оберіть роль для тестування'**
+  String get chooseRoleForTesting;
+
+  /// No description provided for @cancel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Скасувати'**
+  String get cancel;
 }
 
 class _AppLocalizationsDelegate

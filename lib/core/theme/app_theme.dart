@@ -53,6 +53,9 @@ class AppTheme {
   static const Color _darkOnBackground = Color(0xFFE2E2E2);
   static const Color _darkOnSurfaceVariant = Color(0xFFB3B3B3);
 
+  // Auth Colors - Light Theme
+  static const Color _lightAuthPrimary = Color(0xFF3C6E47);
+
   // Lesson Colors Light
   static const LessonColors _lightLessonColors = LessonColors(
     labColor: Color(0xFF708661),
@@ -178,5 +181,11 @@ class AppTheme {
       ),
       extensions: const <ThemeExtension<dynamic>>[_darkLessonColors],
     );
+  }
+
+  static Color getAuthPrimaryColor(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    // Invert colors for auth: light theme uses dark green, dark theme uses lime
+    return brightness == Brightness.dark ? _lightPrimary : _lightAuthPrimary;
   }
 }

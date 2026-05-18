@@ -61,5 +61,103 @@ void main() async {
       print('❌ Error $docId: ${response.body}');
     }
   }
+
+  // Збираємо унікальних викладачів для створення пошта/викладач мапінгу
+  final Map<String, String> teachersMap = {};
+  for (var item in scheduleData) {
+    final String teacherName = item['teacher']?.toString() ?? '';
+    final String teacherId = teacherName.toLowerCase()
+        .replaceAll(' ', '_').replaceAll('.', '_');
+    if (teacherName.isNotEmpty && teacherName != 'null') {
+      teachersMap[teacherId] = teacherName;
+    }
+  }
+
+  print('\n🚀 Uploading teacher email mappings...');
+  for (var entry in teachersMap.entries) {
+    final String teacherId = entry.key;
+    final String name = entry.value;
+    final String email = '$teacherId@nltu.edu.ua';
+
+    final teacherData = {
+      "fields": {
+        "teacherId": {"stringValue": teacherId},
+        "name": {"stringValue": name}
+      }
+    };
+
+    final url = Uri.parse('$baseUrl/teachers/$email');
+    final response = await http.patch(
+      url,
+      body: json.encode(teacherData),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      print('✅ Mapped: $email -> $teacherId ($name)');
+    } else {
+      print('❌ Error mapping $email: ${response.body}');
+    }
+  }
+
+  // Збираємо унікальні групи
+  final Set<String> groupsSet = {};
+  for (var item in scheduleData) {
+    if (item['groupId'] != null) {
+      groupsSet.add(item['groupId'].toString());
+    }
+  }
+  final List<String> groupsList = groupsSet.toList()..sort();
+  final List<String> testGroups = groupsList.take(3).toList();
+
+  // Додаємо тестові акаунти у спеціальну колекцію для емулятора
+  print('\n🚀 Uploading dev test accounts...');
+  
+  final List<Map<String, dynamic>> studentAccounts = testGroups.asMap().entries.map((e) {
+    return {
+      "mapValue": {
+        "fields": {
+          "email": {"stringValue": "student${e.key + 1}@nltu.lviv.ua"},
+          "name": {"stringValue": "Test Student ${e.key + 1}"},
+          "groupId": {"stringValue": e.value},
+          "role": {"stringValue": "student"}
+        }
+      }
+    };
+  }).toList();
+
+  final List<Map<String, dynamic>> teacherAccounts = teachersMap.entries.take(3).toList().asMap().entries.map((e) {
+    return {
+      "mapValue": {
+        "fields": {
+          "email": {"stringValue": "teacher${e.key + 1}@nltu.edu.ua"},
+          "name": {"stringValue": e.value.value},
+          "teacherId": {"stringValue": e.value.key},
+          "role": {"stringValue": "teacher"}
+        }
+      }
+    };
+  }).toList();
+
+  final testAccountsData = {
+    "fields": {
+      "students": {"arrayValue": {"values": studentAccounts}},
+      "teachers": {"arrayValue": {"values": teacherAccounts}}
+    }
+  };
+
+  final testAccountsUrl = Uri.parse('$baseUrl/config/test_accounts');
+  final testAccountsResponse = await http.patch(
+    testAccountsUrl,
+    body: json.encode(testAccountsData),
+    headers: {'Content-Type': 'application/json'},
+  );
+
+  if (testAccountsResponse.statusCode == 200) {
+    print('✅ Created dev test accounts in config/test_accounts');
+  } else {
+    print('❌ Error creating test accounts: ${testAccountsResponse.body}');
+  }
+
   print('\n✨ Database updated!');
 }

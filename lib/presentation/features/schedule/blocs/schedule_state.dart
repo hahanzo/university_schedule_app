@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+
 import '../../../../data/models/lesson_dto.dart';
 import '../models/schedule_list_item.dart';
 

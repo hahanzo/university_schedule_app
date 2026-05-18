@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:university_schedule_app/l10n/app_localizations.dart';
 
-// Extracts the prefix before the first dash: 'КН-11-1' → 'КН'
+// Extracts the prefix before the first dash: 'KN-11-1' → 'KN'
 String groupPrefix(String groupId) {
   final idx = groupId.indexOf('-');
   return idx == -1 ? groupId : groupId.substring(0, idx);

@@ -96,6 +96,21 @@ class AppLocalizationsUk extends AppLocalizations {
   String get searchSchedule => 'Пошук розкладу';
 
   @override
+  String get selectGroup => 'Виберіть свою групу';
+
+  @override
+  String get selectTeacher => 'Виберіть свого викладача';
+
+  @override
+  String get searchTeacher => 'Пошук викладача...';
+
+  @override
+  String get retry => 'Спробувати ще раз';
+
+  @override
+  String get schedule => 'Розклад';
+
+  @override
   String get numerator => 'Чисельник';
 
   @override
@@ -118,4 +133,109 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get search => 'Пошук';
+
+  @override
+  String get profile => 'Профіль';
+
+  @override
+  String get fullName => 'Повне імʼя';
+
+  @override
+  String get editProfile => 'Редагувати профіль';
+
+  @override
+  String get changePhoto => 'Змінити фото';
+
+  @override
+  String get removePhoto => 'Видалити фото';
+
+  @override
+  String get contacts => 'Контакти';
+
+  @override
+  String get status => 'Статус';
+
+  @override
+  String get phone => 'Телефон';
+
+  @override
+  String get telegram => 'Telegram';
+
+  @override
+  String get instagram => 'Instagram';
+
+  @override
+  String get facebook => 'Facebook';
+
+  @override
+  String get whatsapp => 'WhatsApp';
+
+  @override
+  String get notSet => 'Не вказано';
+
+  @override
+  String get settings => 'Налаштування';
+
+  @override
+  String get theme => 'Тема';
+
+  @override
+  String get language => 'Мова';
+
+  @override
+  String get signOut => 'Вийти';
+
+  @override
+  String get system => 'Системна';
+
+  @override
+  String get light => 'Світла';
+
+  @override
+  String get dark => 'Темна';
+
+  @override
+  String get ukrainian => 'Українська';
+
+  @override
+  String get english => 'English';
+
+  @override
+  String get addSocialLink => 'Додати соцмережу';
+
+  @override
+  String get platform => 'Платформа';
+
+  @override
+  String get linkOrContact => 'Посилання / контакт';
+
+  @override
+  String get enterYourName => 'Вкажіть ваше ім\'я';
+
+  @override
+  String get nameIsDisplayedAsTeacher =>
+      'Ім\'я відображається у розкладі як викладач';
+
+  @override
+  String get signInWithGoogle => 'Увійти через Google';
+
+  @override
+  String get useUniversityEmail =>
+      'Використовуйте пошту @nltu.lviv.ua або @nltu.edu.ua';
+
+  @override
+  String get errorPrefix => 'Помилка';
+
+  @override
+  String get noTestAccounts =>
+      'Немає тестових акаунтів.\nЗапустіть скрипт seed_db.dart';
+
+  @override
+  String get emulatorMode => 'Режим емулятора';
+
+  @override
+  String get chooseRoleForTesting => 'Оберіть роль для тестування';
+
+  @override
+  String get cancel => 'Скасувати';
 }

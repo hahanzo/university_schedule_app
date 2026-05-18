@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/constants/filter_keys.dart';
 import '../../../../core/utils/date_extensions.dart';
 import '../../../../domain/repositories/schedule_repository.dart';

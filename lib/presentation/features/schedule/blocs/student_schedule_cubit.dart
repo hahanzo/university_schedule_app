@@ -1,7 +1,8 @@
 import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/constants/app_constants.dart';
+
 import '../../../../core/constants/filter_keys.dart';
 import '../../../../core/utils/date_extensions.dart';
 import '../../../../domain/repositories/schedule_repository.dart';
@@ -64,10 +65,11 @@ class StudentScheduleCubit extends Cubit<ScheduleState> {
   /// Pull-to-refresh: reads from local cache, preserves all current state.
   Future<void> reloadFromCache() async {
     final s = _loaded;
-    final groupIds = s?.selectedGroup ?? [AppConstants.defaultGroupId];
-    final currentDate = s?.selectedDate ?? DateTime.now().closestWorkday;
-    var availableGroups = s?.availableGroups ?? [];
-    final activeFilters = s?.activeFilters ?? {};
+    if (s == null) return;
+    final groupIds = s.selectedGroup;
+    final currentDate = s.selectedDate;
+    var availableGroups = s.availableGroups;
+    final activeFilters = s.activeFilters;
 
     try {
       final lessons = await _fetchLessonsFromCache(groupIds);
