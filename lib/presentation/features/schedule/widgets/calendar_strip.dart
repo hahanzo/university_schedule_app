@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:university_schedule_app/core/utils/date_extensions.dart';
 import 'package:university_schedule_app/l10n/app_localizations.dart';
+
 import '../../../../core/utils/string_extensions.dart';
 
 class CalendarStrip extends StatefulWidget {

@@ -1,37 +1,44 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'l10n/app_localizations.dart';
 import 'presentation/features/schedule/pages/student_schedule_screen.dart';
 import 'presentation/features/schedule/pages/teacher_schedule_screen.dart';
-import 'core/theme/app_theme.dart';
-import 'core/injection.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'presentation/features/auth/blocs/auth_cubit.dart';
 import 'presentation/features/auth/blocs/auth_state.dart';
 import 'presentation/features/auth/pages/startup_screen.dart';
 import 'presentation/features/settings/blocs/settings_cubit.dart';
 import 'presentation/features/settings/blocs/settings_state.dart';
 import 'presentation/features/settings/pages/settings_screen.dart';
+import 'core/constants/app_constants.dart';
+import 'core/theme/app_theme.dart';
+import 'core/injection.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('uk_UA', null);
 
-  const bool useEmulators =
-      bool.fromEnvironment('USE_FIREBASE_EMULATORS', defaultValue: true);
+  const bool useEmulators = bool.fromEnvironment(
+    'USE_FIREBASE_EMULATORS',
+    defaultValue: true,
+  );
   const String apiKeyEnv = String.fromEnvironment('FIREBASE_API_KEY');
   const String appIdEnv = String.fromEnvironment('FIREBASE_APP_ID');
-  const String messagingSenderIdEnv =
-      String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
+  const String messagingSenderIdEnv = String.fromEnvironment(
+    'FIREBASE_MESSAGING_SENDER_ID',
+  );
   const String projectIdEnv = String.fromEnvironment('FIREBASE_PROJECT_ID');
-  const String storageBucketEnv =
-      String.fromEnvironment('FIREBASE_STORAGE_BUCKET');
+  const String storageBucketEnv = String.fromEnvironment(
+    'FIREBASE_STORAGE_BUCKET',
+  );
   const String authDomainEnv = String.fromEnvironment('FIREBASE_AUTH_DOMAIN');
   const String databaseUrlEnv = String.fromEnvironment('FIREBASE_DATABASE_URL');
 
-  final bool hasFirebaseOptions = apiKeyEnv.isNotEmpty &&
+  final bool hasFirebaseOptions =
+      apiKeyEnv.isNotEmpty &&
       appIdEnv.isNotEmpty &&
       messagingSenderIdEnv.isNotEmpty &&
       projectIdEnv.isNotEmpty;
@@ -39,8 +46,7 @@ void main() async {
   final FirebaseOptions firebaseOptions = FirebaseOptions(
     apiKey: hasFirebaseOptions ? apiKeyEnv : "any-key",
     appId: hasFirebaseOptions ? appIdEnv : "uni-schedule-app",
-    messagingSenderId:
-        hasFirebaseOptions ? messagingSenderIdEnv : "any-id",
+    messagingSenderId: hasFirebaseOptions ? messagingSenderIdEnv : "any-id",
     projectId: hasFirebaseOptions ? projectIdEnv : "uni-schedule-dev",
     storageBucket: storageBucketEnv.isNotEmpty
         ? storageBucketEnv
@@ -119,7 +125,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
   @override
   void initState() {
     super.initState();
-    _selectedIndex = widget.userRole == 'teacher' ? 1 : 0;
+    _selectedIndex = widget.userRole == AppConstants.teacherRole ? 1 : 0;
   }
 
   static const _pages = [
@@ -132,10 +138,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (i) => setState(() => _selectedIndex = i),
@@ -150,10 +153,10 @@ class _RootScaffoldState extends State<_RootScaffold> {
             selectedIcon: const Icon(Icons.person),
             label: l10n.teachers,
           ),
-          const NavigationDestination(
+          NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
-            label: 'Налаштування', // Hardcoded temporarily
+            label: l10n.settings,
           ),
         ],
       ),

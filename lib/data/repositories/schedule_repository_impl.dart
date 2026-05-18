@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../domain/repositories/schedule_repository.dart';
 import '../models/lesson_dto.dart';
 
@@ -159,4 +160,4 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       throw Exception('Error loading teachers from cache: $e');
     }
   }
-}
+}

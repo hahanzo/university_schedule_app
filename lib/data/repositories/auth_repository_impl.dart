@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+
+import '../../core/constants/app_constants.dart';
 import '../../core/utils/auth_validators.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../models/user_profile.dart';
@@ -57,8 +59,8 @@ class AuthRepositoryImpl implements AuthRepository {
     final uid = userCredential.user?.uid;
     if (uid != null) {
       final role = lowerEmail.endsWith(AuthValidators.teacherDomain)
-          ? 'teacher'
-          : 'student';
+          ? AppConstants.teacherRole
+          : AppConstants.studentRole;
       await _firestore.collection('users').doc(uid).set({
         'name': name,
         'email': email,
@@ -97,8 +99,8 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     final role = email.toLowerCase().endsWith(AuthValidators.teacherDomain)
-        ? 'teacher'
-        : 'student';
+        ? AppConstants.teacherRole
+        : AppConstants.studentRole;
 
     final userDoc = _firestore.collection('users').doc(user.uid);
     final snapshot = await userDoc.get();

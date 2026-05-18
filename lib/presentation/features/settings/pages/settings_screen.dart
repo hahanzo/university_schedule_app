@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/constants/app_constants.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../auth/blocs/auth_cubit.dart';
 import '../../auth/blocs/auth_state.dart';
 import '../blocs/settings_cubit.dart';
 import '../blocs/settings_state.dart';
+import '../widgets/settings_choice_tile.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -15,10 +18,7 @@ class SettingsScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Налаштування'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(l10n.settings), centerTitle: true),
       body: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, authState) {
           final userProfile = authState.maybeWhen(
@@ -27,11 +27,15 @@ class SettingsScreen extends StatelessWidget {
           );
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(
+              SettingsUiConstants.horizontalPadding,
+            ),
             children: [
               if (userProfile != null) ...[
                 Card(
-                  margin: const EdgeInsets.only(bottom: 8),
+                  margin: const EdgeInsets.only(
+                    bottom: SettingsUiConstants.userCardMarginBottom,
+                  ),
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: theme.colorScheme.primaryContainer,
@@ -45,11 +49,13 @@ class SettingsScreen extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      '${userProfile.email} • ${userProfile.role == 'teacher' ? l10n.teachers : l10n.students}',
+                      '${userProfile.email} • ${userProfile.role == AppConstants.teacherRole ? l10n.teachers : l10n.students}',
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(
+                  height: SettingsUiConstants.verticalPaddingSmall,
+                ),
               ],
 
               // Theme section
@@ -64,29 +70,29 @@ class SettingsScreen extends StatelessWidget {
                           vertical: 8,
                         ),
                         child: Text(
-                          'Тема',
+                          l10n.theme,
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      _ThemeOption(
-                        title: 'Системна',
+                      SettingsChoiceTile<ThemeMode>(
+                        title: l10n.system,
                         value: ThemeMode.system,
                         groupValue: state.themeMode,
                         onChanged: (v) =>
                             context.read<SettingsCubit>().changeTheme(v!),
                       ),
-                      _ThemeOption(
-                        title: 'Світла',
+                      SettingsChoiceTile<ThemeMode>(
+                        title: l10n.light,
                         value: ThemeMode.light,
                         groupValue: state.themeMode,
                         onChanged: (v) =>
                             context.read<SettingsCubit>().changeTheme(v!),
                       ),
-                      _ThemeOption(
-                        title: 'Темна',
+                      SettingsChoiceTile<ThemeMode>(
+                        title: l10n.dark,
                         value: ThemeMode.dark,
                         groupValue: state.themeMode,
                         onChanged: (v) =>
@@ -110,22 +116,22 @@ class SettingsScreen extends StatelessWidget {
                           vertical: 8,
                         ),
                         child: Text(
-                          'Мова',
+                          l10n.language,
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      _LocaleOption(
-                        title: 'Українська',
+                      SettingsChoiceTile<Locale>(
+                        title: l10n.ukrainian,
                         value: const Locale('uk'),
                         groupValue: state.locale,
                         onChanged: (v) =>
                             context.read<SettingsCubit>().changeLocale(v!),
                       ),
-                      _LocaleOption(
-                        title: 'English',
+                      SettingsChoiceTile<Locale>(
+                        title: l10n.english,
                         value: const Locale('en'),
                         groupValue: state.locale,
                         onChanged: (v) =>
@@ -140,9 +146,9 @@ class SettingsScreen extends StatelessWidget {
               // Sign out
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text(
-                  'Вийти',
-                  style: TextStyle(color: Colors.red),
+                title: Text(
+                  l10n.signOut,
+                  style: const TextStyle(color: Colors.red),
                 ),
                 onTap: () => context.read<AuthCubit>().signOut(),
               ),
@@ -150,72 +156,6 @@ class SettingsScreen extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-class _ThemeOption extends StatelessWidget {
-  final String title;
-  final ThemeMode value;
-  final ThemeMode groupValue;
-  final ValueChanged<ThemeMode?> onChanged;
-
-  const _ThemeOption({
-    required this.title,
-    required this.value,
-    required this.groupValue,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      title: Text(title),
-      leading: GestureDetector(
-        onTap: () => onChanged(value),
-        child: Icon(
-          groupValue == value
-              ? Icons.radio_button_checked
-              : Icons.radio_button_off,
-          color: groupValue == value
-              ? Theme.of(context).colorScheme.primary
-              : null,
-        ),
-      ),
-      onTap: () => onChanged(value),
-    );
-  }
-}
-
-class _LocaleOption extends StatelessWidget {
-  final String title;
-  final Locale value;
-  final Locale groupValue;
-  final ValueChanged<Locale?> onChanged;
-
-  const _LocaleOption({
-    required this.title,
-    required this.value,
-    required this.groupValue,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      title: Text(title),
-      leading: GestureDetector(
-        onTap: () => onChanged(value),
-        child: Icon(
-          groupValue == value
-              ? Icons.radio_button_checked
-              : Icons.radio_button_off,
-          color: groupValue == value
-              ? Theme.of(context).colorScheme.primary
-              : null,
-        ),
-      ),
-      onTap: () => onChanged(value),
     );
   }
 }

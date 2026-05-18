@@ -118,4 +118,31 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get search => 'Пошук';
+
+  @override
+  String get settings => 'Налаштування';
+
+  @override
+  String get theme => 'Тема';
+
+  @override
+  String get language => 'Мова';
+
+  @override
+  String get signOut => 'Вийти';
+
+  @override
+  String get system => 'Системна';
+
+  @override
+  String get light => 'Світла';
+
+  @override
+  String get dark => 'Темна';
+
+  @override
+  String get ukrainian => 'Українська';
+
+  @override
+  String get english => 'English';
 }

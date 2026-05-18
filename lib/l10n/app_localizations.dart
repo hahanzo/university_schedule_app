@@ -319,6 +319,60 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Пошук'**
   String get search;
+
+  /// No description provided for @settings.
+  ///
+  /// In uk, this message translates to:
+  /// **'Налаштування'**
+  String get settings;
+
+  /// No description provided for @theme.
+  ///
+  /// In uk, this message translates to:
+  /// **'Тема'**
+  String get theme;
+
+  /// No description provided for @language.
+  ///
+  /// In uk, this message translates to:
+  /// **'Мова'**
+  String get language;
+
+  /// No description provided for @signOut.
+  ///
+  /// In uk, this message translates to:
+  /// **'Вийти'**
+  String get signOut;
+
+  /// No description provided for @system.
+  ///
+  /// In uk, this message translates to:
+  /// **'Системна'**
+  String get system;
+
+  /// No description provided for @light.
+  ///
+  /// In uk, this message translates to:
+  /// **'Світла'**
+  String get light;
+
+  /// No description provided for @dark.
+  ///
+  /// In uk, this message translates to:
+  /// **'Темна'**
+  String get dark;
+
+  /// No description provided for @ukrainian.
+  ///
+  /// In uk, this message translates to:
+  /// **'Українська'**
+  String get ukrainian;
+
+  /// No description provided for @english.
+  ///
+  /// In uk, this message translates to:
+  /// **'English'**
+  String get english;
 }
 
 class _AppLocalizationsDelegate

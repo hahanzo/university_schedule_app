@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
 

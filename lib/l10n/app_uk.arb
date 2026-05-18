@@ -36,5 +36,14 @@
     "group": "Група",
     "students": "Студенти",
     "teachers": "Викладачі",
-    "search": "Пошук"
+    "search": "Пошук",
+    "settings": "Налаштування",
+    "theme": "Тема",
+    "language": "Мова",
+    "signOut": "Вийти",
+    "system": "Системна",
+    "light": "Світла",
+    "dark": "Темна",
+    "ukrainian": "Українська",
+    "english": "English"
 }

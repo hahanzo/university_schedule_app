@@ -36,5 +36,14 @@
     "group": "Group",
     "students": "Students",
     "teachers": "Teachers",
-    "search": "Search"
+    "search": "Search",
+    "settings": "Settings",
+    "theme": "Theme",
+    "language": "Language",
+    "signOut": "Sign out",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "ukrainian": "Ukrainian",
+    "english": "English"
 }

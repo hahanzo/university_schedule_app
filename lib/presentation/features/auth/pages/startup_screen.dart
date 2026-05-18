@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/theme/app_theme.dart';
 import '../blocs/auth_cubit.dart';
 import '../widgets/auth_modals.dart';
 
@@ -35,6 +37,7 @@ class StartupScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -59,7 +62,7 @@ class StartupScreen extends StatelessWidget {
                     Text(
                       'Forestry Time',
                       style: theme.textTheme.headlineMedium?.copyWith(
-                        color: const Color(0xFF2C5E3B),
+                        color: AppTheme.getAuthPrimaryColor(context),
                         fontWeight: FontWeight.bold,
                         fontSize: 32,
                       ),
@@ -75,18 +78,18 @@ class StartupScreen extends StatelessWidget {
                     child: FilledButton(
                       onPressed: () => openSignIn(context),
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF3C6E47),
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppTheme.getAuthPrimaryColor(context),
+                        foregroundColor: theme.scaffoldBackgroundColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Sign In',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: theme.scaffoldBackgroundColor,
                         ),
                       ),
                     ),
@@ -98,20 +101,20 @@ class StartupScreen extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: () => openSignUp(context),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Color(0xFF3C6E47),
+                        side: BorderSide(
+                          color: AppTheme.getAuthPrimaryColor(context),
                           width: 2,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Sign Up',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF3C6E47),
+                          color: AppTheme.getAuthPrimaryColor(context),
                         ),
                       ),
                     ),
