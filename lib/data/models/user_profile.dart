@@ -10,6 +10,10 @@ abstract class UserProfile with _$UserProfile {
     required String name,
     required String email,
     required String role,
+    String? avatarUrl,
+    Map<String, String>? socialLinks,
+    String? groupId,
+    String? teacherId,
   }) = _UserProfile;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) =>

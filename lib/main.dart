@@ -9,6 +9,7 @@ import 'presentation/features/schedule/pages/student_schedule_screen.dart';
 import 'presentation/features/schedule/pages/teacher_schedule_screen.dart';
 import 'presentation/features/auth/blocs/auth_cubit.dart';
 import 'presentation/features/auth/blocs/auth_state.dart';
+import 'presentation/features/auth/pages/profile_setup_screen.dart';
 import 'presentation/features/auth/pages/startup_screen.dart';
 import 'presentation/features/settings/blocs/settings_cubit.dart';
 import 'presentation/features/settings/blocs/settings_state.dart';
@@ -44,13 +45,13 @@ void main() async {
       projectIdEnv.isNotEmpty;
 
   final FirebaseOptions firebaseOptions = FirebaseOptions(
-    apiKey: hasFirebaseOptions ? apiKeyEnv : "any-key",
-    appId: hasFirebaseOptions ? appIdEnv : "uni-schedule-app",
-    messagingSenderId: hasFirebaseOptions ? messagingSenderIdEnv : "any-id",
-    projectId: hasFirebaseOptions ? projectIdEnv : "uni-schedule-dev",
+    apiKey: hasFirebaseOptions ? apiKeyEnv : 'any-key',
+    appId: hasFirebaseOptions ? appIdEnv : 'uni-schedule-app',
+    messagingSenderId: hasFirebaseOptions ? messagingSenderIdEnv : 'any-id',
+    projectId: hasFirebaseOptions ? projectIdEnv : 'uni-schedule-dev',
     storageBucket: storageBucketEnv.isNotEmpty
         ? storageBucketEnv
-        : "uni-schedule-dev.appspot.com",
+        : 'uni-schedule-dev.appspot.com',
     authDomain: authDomainEnv.isNotEmpty ? authDomainEnv : null,
     databaseURL: databaseUrlEnv.isNotEmpty ? databaseUrlEnv : null,
   );
@@ -61,7 +62,6 @@ void main() async {
     await Firebase.initializeApp();
   }
 
-  // Set transparent status bar and navigation bar for a more immersive experience
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -99,7 +99,21 @@ class MyApp extends StatelessWidget {
             home: BlocBuilder<AuthCubit, AuthState>(
               builder: (context, authState) {
                 return authState.maybeWhen(
-                  authenticated: (user) => _RootScaffold(userRole: user.role),
+                  authenticated: (user) {
+                    final needsProfileSetup =
+                        user.role != AppConstants.teacherRole &&
+                        (user.groupId == null || user.groupId!.trim().isEmpty);
+
+                    if (needsProfileSetup) {
+                      return ProfileSetupScreen(userProfile: user);
+                    }
+
+                    return _RootScaffold(
+                      userRole: user.role,
+                      groupId: user.groupId,
+                      teacherId: user.teacherId,
+                    );
+                  },
                   orElse: () => const StartupScreen(),
                 );
               },
@@ -113,45 +127,45 @@ class MyApp extends StatelessWidget {
 
 class _RootScaffold extends StatefulWidget {
   final String userRole;
-  const _RootScaffold({required this.userRole});
+  final String? groupId;
+  final String? teacherId;
+  const _RootScaffold({
+    required this.userRole,
+    this.groupId,
+    this.teacherId,
+  });
 
   @override
   State<_RootScaffold> createState() => _RootScaffoldState();
 }
 
 class _RootScaffoldState extends State<_RootScaffold> {
-  late int _selectedIndex;
+  int _selectedIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedIndex = widget.userRole == AppConstants.teacherRole ? 1 : 0;
+  Widget _buildSchedulePage() {
+    if (widget.userRole == AppConstants.teacherRole) {
+      return TeacherScheduleScreen(initialTeacherId: widget.teacherId);
+    }
+    return StudentScheduleScreen(initialGroupId: widget.groupId);
   }
-
-  static const _pages = [
-    StudentScheduleScreen(),
-    TeacherScheduleScreen(),
-    SettingsScreen(),
-  ];
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final pages = [
+      _buildSchedulePage(),
+      const SettingsScreen(),
+    ];
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _pages),
+      body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (i) => setState(() => _selectedIndex = i),
         destinations: [
           NavigationDestination(
-            icon: const Icon(Icons.school_outlined),
-            selectedIcon: const Icon(Icons.school),
-            label: l10n.students,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.person_outline),
-            selectedIcon: const Icon(Icons.person),
-            label: l10n.teachers,
+            icon: const Icon(Icons.calendar_month_outlined),
+            selectedIcon: const Icon(Icons.calendar_month),
+            label: l10n.schedule,
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

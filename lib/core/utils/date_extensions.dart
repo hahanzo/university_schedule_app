@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
 extension DateTimeX on DateTime {
-  bool get isWeekend => weekday == DateTime.saturday || weekday == DateTime.sunday;
+  bool get isWeekend =>
+      weekday == DateTime.saturday || weekday == DateTime.sunday;
 
   // Returns next Monday from any date (used to skip weekends)
   DateTime get nextMonday {
     final daysUntilMonday = DateTime.monday - weekday;
-    return add(Duration(days: daysUntilMonday <= 0 ? daysUntilMonday + 7 : daysUntilMonday));
+    return add(
+      Duration(
+        days: daysUntilMonday <= 0 ? daysUntilMonday + 7 : daysUntilMonday,
+      ),
+    );
   }
 
   // If this date is a weekend, returns next Monday; otherwise returns itself
@@ -26,27 +31,6 @@ extension DateTimeX on DateTime {
       prev = prev.subtract(const Duration(days: 1));
     }
     return prev;
-  }
-
-  String get weekdayNameUa {
-    switch (weekday) {
-      case 1:
-        return 'Понеділок';
-      case 2:
-        return 'Вівторок';
-      case 3:
-        return 'Середа';
-      case 4:
-        return 'Четвер';
-      case 5:
-        return 'П\'ятниця';
-      case 6:
-        return 'Субота';
-      case 7:
-        return 'Неділя';
-      default:
-        return '';
-    }
   }
 
   bool isSameDayAs(DateTime other) {

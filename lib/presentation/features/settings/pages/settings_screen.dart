@@ -2,15 +2,100 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/injection.dart';
+import '../../../../data/models/user_profile.dart';
+import '../../../../domain/repositories/schedule_repository.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../auth/blocs/auth_cubit.dart';
 import '../../auth/blocs/auth_state.dart';
 import '../blocs/settings_cubit.dart';
 import '../blocs/settings_state.dart';
 import '../widgets/settings_choice_tile.dart';
+import 'profile_edit_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final ScheduleRepository _scheduleRepository = getIt<ScheduleRepository>();
+  Map<String, String> _teacherNames = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTeacherNames();
+  }
+
+  Future<void> _loadTeacherNames() async {
+    try {
+      _teacherNames = await _scheduleRepository.getAllAvailableTeachers();
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  String _roleLabel(AppLocalizations l10n, String role) {
+    return role == AppConstants.teacherRole ? l10n.teacher : l10n.students;
+  }
+
+  String _teacherLabel(String? teacherId, AppLocalizations l10n) {
+    if (teacherId == null || teacherId.trim().isEmpty) {
+      return l10n.notSet;
+    }
+    return _teacherNames[teacherId] ?? teacherId;
+  }
+
+  String _groupLabel(String? groupId, AppLocalizations l10n) {
+    if (groupId == null || groupId.trim().isEmpty) {
+      return l10n.notSet;
+    }
+    return groupId;
+  }
+
+  List<_ProfileContactItem> _buildContacts(UserProfile user) {
+    final contacts = <_ProfileContactItem>[];
+    final links = user.socialLinks ?? {};
+    for (final entry in links.entries) {
+      if (entry.value.trim().isNotEmpty) {
+        contacts.add(
+          _ProfileContactItem(
+            icon: _socialIcon(entry.key),
+            label: entry.key,
+            value: entry.value.trim(),
+          ),
+        );
+      }
+    }
+    return contacts;
+  }
+
+  IconData _socialIcon(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'telegram':
+        return Icons.send;
+      case 'instagram':
+        return Icons.camera_alt;
+      case 'facebook':
+        return Icons.facebook;
+      case 'whatsapp':
+        return Icons.chat;
+      case 'телефон':
+      case 'phone':
+        return Icons.phone;
+      case 'linkedin':
+        return Icons.work;
+      case 'youtube':
+        return Icons.play_circle;
+      default:
+        return Icons.link;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,24 +117,28 @@ class SettingsScreen extends StatelessWidget {
             ),
             children: [
               if (userProfile != null) ...[
-                Card(
-                  margin: const EdgeInsets.only(
-                    bottom: SettingsUiConstants.userCardMarginBottom,
-                  ),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: theme.colorScheme.primaryContainer,
-                      child: Icon(
-                        Icons.person,
-                        color: theme.colorScheme.onPrimaryContainer,
+                if (userProfile.role == AppConstants.teacherRole &&
+                    userProfile.name.trim().isEmpty) ...[
+                  _MissingNameBanner(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ProfileEditScreen(userProfile: userProfile),
                       ),
                     ),
-                    title: Text(
-                      userProfile.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      '${userProfile.email} • ${userProfile.role == AppConstants.teacherRole ? l10n.teachers : l10n.students}',
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                _ProfileCard(
+                  userProfile: userProfile,
+                  roleLabel: _roleLabel(l10n, userProfile.role),
+                  groupLabel: _groupLabel(userProfile.groupId, l10n),
+                  teacherLabel: _teacherLabel(userProfile.teacherId, l10n),
+                  contacts: _buildContacts(userProfile),
+                  onEdit: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ProfileEditScreen(userProfile: userProfile),
                     ),
                   ),
                 ),
@@ -155,6 +244,192 @@ class SettingsScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _ProfileCard extends StatelessWidget {
+  final UserProfile userProfile;
+  final String roleLabel;
+  final String groupLabel;
+  final String teacherLabel;
+  final List<_ProfileContactItem> contacts;
+  final VoidCallback onEdit;
+
+  const _ProfileCard({
+    required this.userProfile,
+    required this.roleLabel,
+    required this.groupLabel,
+    required this.teacherLabel,
+    required this.contacts,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final avatarUrl = (userProfile.avatarUrl ?? '').trim();
+    final trimmedName = userProfile.name.trim();
+    final initials = trimmedName.isNotEmpty
+        ? trimmedName.substring(0, 1).toUpperCase()
+        : '?';
+
+    return Card(
+      margin: const EdgeInsets.only(
+        bottom: SettingsUiConstants.userCardMarginBottom,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.profile,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                  backgroundImage: avatarUrl.isNotEmpty
+                      ? NetworkImage(avatarUrl)
+                      : null,
+                  child: avatarUrl.isEmpty
+                      ? Text(
+                          initials,
+                          style: TextStyle(
+                            color: theme.colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userProfile.name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        userProfile.email,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${l10n.status}: $roleLabel',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (userProfile.role != AppConstants.teacherRole) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '${l10n.group}: $groupLabel',
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit),
+                  tooltip: l10n.editProfile,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileContactItem {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _ProfileContactItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+}
+
+class _MissingNameBanner extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _MissingNameBanner({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return Material(
+      color: theme.colorScheme.primaryContainer,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(
+                Icons.edit_note,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.enterYourName,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.nameIsDisplayedAsTeacher,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer.withValues(
+                          alpha: 0.8,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/constants/dev_constants.dart';
+import '../../../../data/models/user_profile.dart';
 import '../../../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
 
@@ -22,32 +24,17 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> _loadUserProfile(String uid) async {
     emit(const AuthState.loading());
     try {
-      final profile = await _authRepository.getUserProfile(uid);
-      if (profile != null) {
-        emit(AuthState.authenticated(profile));
-      } else {
-        emit(const AuthState.unauthenticated());
+      UserProfile? profile;
+      for (int i = 0; i < AuthConstants.profileLoadRetries; i++) {
+        profile = await _authRepository.getUserProfile(uid);
+        if (profile != null) break;
+        await Future.delayed(AuthConstants.profileLoadRetryDelay);
       }
+      emit(profile != null
+          ? AuthState.authenticated(profile)
+          : const AuthState.unauthenticated());
     } catch (e) {
       emit(AuthState.error(e.toString()));
-    }
-  }
-
-  Future<void> signIn(String email, String password) async {
-    emit(const AuthState.loading());
-    try {
-      await _authRepository.signInWithEmail(email, password);
-    } catch (e) {
-      emit(AuthState.error(_parseErrorMessage(e.toString())));
-    }
-  }
-
-  Future<void> signUp(String name, String email, String password) async {
-    emit(const AuthState.loading());
-    try {
-      await _authRepository.signUpWithEmail(name, email, password);
-    } catch (e) {
-      emit(AuthState.error(_parseErrorMessage(e.toString())));
     }
   }
 
@@ -55,11 +42,9 @@ class AuthCubit extends Cubit<AuthState> {
     emit(const AuthState.loading());
     try {
       final didSignIn = await _authRepository.signInWithGoogle();
-      if (!didSignIn) {
-        emit(const AuthState.unauthenticated());
-      }
+      if (!didSignIn) emit(const AuthState.unauthenticated());
     } catch (e) {
-      emit(AuthState.error(_parseErrorMessage(e.toString())));
+      emit(AuthState.error(_parseError(e.toString())));
     }
   }
 
@@ -72,24 +57,48 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<bool> resetPassword(String email) async {
-    emit(const AuthState.loading());
-    try {
-      await _authRepository.resetPassword(email);
-      emit(const AuthState.unauthenticated()); // Or a specific reset state
-      return true;
-    } catch (e) {
-      emit(AuthState.error(_parseErrorMessage(e.toString())));
-      return false;
+  Future<void> updateProfile({
+    String? name,
+    String? avatarFilePath,
+    String? avatarUrl,
+    Map<String, String>? socialLinks,
+    String? groupId,
+    String? teacherId,
+  }) async {
+    final currentUser = state.maybeWhen(
+      authenticated: (user) => user,
+      orElse: () => null,
+    );
+    if (currentUser == null) throw Exception('User not found.');
+
+    String? resolvedAvatarUrl = avatarUrl;
+    if (avatarFilePath != null) {
+      resolvedAvatarUrl =
+          await _authRepository.uploadAvatar(currentUser.uid, avatarFilePath);
     }
+
+    await _authRepository.updateUserProfile(
+      currentUser.uid,
+      name: name,
+      avatarUrl: resolvedAvatarUrl,
+      socialLinks: socialLinks,
+      groupId: groupId,
+      teacherId: teacherId,
+    );
+
+    final updated = await _authRepository.getUserProfile(currentUser.uid);
+    if (updated != null) emit(AuthState.authenticated(updated));
   }
 
-  String _parseErrorMessage(String error) {
-    if (error.contains('user-not-found')) return 'Користувача не знайдено.';
-    if (error.contains('wrong-password')) return 'Неправильний пароль.';
-    if (error.contains('email-already-in-use')) return 'Ця пошта вже зареєстрована.';
-    if (error.contains('weak-password')) return 'Пароль надто слабкий.';
-    if (error.contains('invalid-email')) return 'Неправильний формат пошти.';
+  Future<void> updateUserSelection({
+    String? groupId,
+    String? teacherId,
+  }) =>
+      updateProfile(groupId: groupId, teacherId: teacherId);
+
+  String _parseError(String error) {
+    if (error.contains('network')) return 'Network error. Check your connection.';
+    if (error.contains('sign_in_failed')) return 'Google sign-in failed.';
     return error.replaceAll('Exception: ', '');
   }
 
