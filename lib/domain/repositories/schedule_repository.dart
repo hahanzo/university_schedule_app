@@ -12,4 +12,5 @@ abstract class ScheduleRepository {
   Stream<List<LessonDto>> watchScheduleByTeacher(String teacherId);
   Future<Map<String, String>> getAllAvailableTeachers(); // id → name
   Future<Map<String, String>> getAllAvailableTeachersFromCache();
+  Future<List<String>> getGroupsForTeacher(String teacherId);
 }

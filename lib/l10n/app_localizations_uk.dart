@@ -108,6 +108,39 @@ class AppLocalizationsUk extends AppLocalizations {
   String get retry => 'Спробувати ще раз';
 
   @override
+  String get chat => 'Чат';
+
+  @override
+  String get messageHint => 'Введіть повідомлення';
+
+  @override
+  String get send => 'Надіслати';
+
+  @override
+  String get noMessages => 'Поки що немає повідомлень';
+
+  @override
+  String get typing => 'Друкує:';
+
+  @override
+  String get sent => 'Надіслано';
+
+  @override
+  String get delivered => 'Доставлено';
+
+  @override
+  String get read => 'Прочитано';
+
+  @override
+  String get noChats => 'Немає доступних чатів';
+
+  @override
+  String get chatLoadError => 'Не вдалося завантажити чати';
+
+  @override
+  String get activeOnly => 'Показувати лише активні чати';
+
+  @override
   String get schedule => 'Розклад';
 
   @override

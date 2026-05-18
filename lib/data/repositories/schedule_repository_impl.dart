@@ -160,4 +160,22 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       throw Exception('Error loading teachers from cache: $e');
     }
   }
+
+  @override
+  Future<List<String>> getGroupsForTeacher(String teacherId) async {
+    if (teacherId.trim().isEmpty) {
+      return [];
+    }
+    try {
+      final snapshot = await _teacherQuery(teacherId).get();
+      final groups = snapshot.docs
+          .map((doc) => doc['groupId'] as String)
+          .toSet()
+          .toList();
+      groups.sort();
+      return groups;
+    } catch (e) {
+      throw Exception('Error loading teacher groups: $e');
+    }
+  }
 }

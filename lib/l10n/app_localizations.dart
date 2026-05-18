@@ -296,6 +296,72 @@ abstract class AppLocalizations {
   /// **'Спробувати ще раз'**
   String get retry;
 
+  /// No description provided for @chat.
+  ///
+  /// In uk, this message translates to:
+  /// **'Чат'**
+  String get chat;
+
+  /// No description provided for @messageHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Введіть повідомлення'**
+  String get messageHint;
+
+  /// No description provided for @send.
+  ///
+  /// In uk, this message translates to:
+  /// **'Надіслати'**
+  String get send;
+
+  /// No description provided for @noMessages.
+  ///
+  /// In uk, this message translates to:
+  /// **'Поки що немає повідомлень'**
+  String get noMessages;
+
+  /// No description provided for @typing.
+  ///
+  /// In uk, this message translates to:
+  /// **'Друкує:'**
+  String get typing;
+
+  /// No description provided for @sent.
+  ///
+  /// In uk, this message translates to:
+  /// **'Надіслано'**
+  String get sent;
+
+  /// No description provided for @delivered.
+  ///
+  /// In uk, this message translates to:
+  /// **'Доставлено'**
+  String get delivered;
+
+  /// No description provided for @read.
+  ///
+  /// In uk, this message translates to:
+  /// **'Прочитано'**
+  String get read;
+
+  /// No description provided for @noChats.
+  ///
+  /// In uk, this message translates to:
+  /// **'Немає доступних чатів'**
+  String get noChats;
+
+  /// No description provided for @chatLoadError.
+  ///
+  /// In uk, this message translates to:
+  /// **'Не вдалося завантажити чати'**
+  String get chatLoadError;
+
+  /// No description provided for @activeOnly.
+  ///
+  /// In uk, this message translates to:
+  /// **'Показувати лише активні чати'**
+  String get activeOnly;
+
   /// No description provided for @schedule.
   ///
   /// In uk, this message translates to:
