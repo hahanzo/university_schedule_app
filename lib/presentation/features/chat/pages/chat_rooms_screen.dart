@@ -87,7 +87,7 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
       rooms.add(
         ChatRoomInfo(
           id: 'group_$baseGroup',
-          label: '${l10n.group}: $baseGroup',
+          label: baseGroup,
           type: 'group',
         ),
       );
@@ -270,11 +270,8 @@ class _UnreadBadge extends StatelessWidget {
       return const Icon(Icons.chevron_right);
     }
 
-    final readMap = (roomMeta?['lastReadAt'] as Map?) ?? {};
-    final readAt = readMap[currentUserId] as Timestamp?;
-
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: _unreadMessagesStream(roomId, readAt),
+      stream: _unreadMessagesStream(roomId),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Icon(Icons.chevron_right);
@@ -286,7 +283,11 @@ class _UnreadBadge extends StatelessWidget {
           final data = doc.data();
           final senderId = (data['senderId'] ?? '').toString();
           if (senderId != currentUserId) {
-            unreadCount += 1;
+            final readBy = (data['readBy'] as Map?) ?? {};
+            final read = readBy[currentUserId] == true;
+            if (!read) {
+              unreadCount += 1;
+            }
           }
         }
 
@@ -316,7 +317,6 @@ class _UnreadBadge extends StatelessWidget {
 
   Stream<QuerySnapshot<Map<String, dynamic>>> _unreadMessagesStream(
     String? roomId,
-    Timestamp? readAt,
   ) {
     final firestore = FirebaseFirestore.instance;
     final roomRef = roomId == null
@@ -324,14 +324,6 @@ class _UnreadBadge extends StatelessWidget {
         : firestore.collection('chat_rooms').doc(roomId).collection('messages');
     if (roomRef == null) {
       return const Stream.empty();
-    }
-
-    if (readAt != null) {
-      return roomRef
-          .where('createdAt', isGreaterThan: readAt)
-          .orderBy('createdAt', descending: true)
-          .limit(200)
-          .snapshots();
     }
 
     return roomRef

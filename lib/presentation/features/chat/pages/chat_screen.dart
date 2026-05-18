@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/string_extensions.dart';
 import '../../../../data/models/user_profile.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../models/chat_room_info.dart';
+import 'group_members_screen.dart';
+import 'profile_view_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final UserProfile userProfile;
@@ -27,6 +30,8 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isSending = false;
   bool _isAtBottom = true;
   final Set<String> _pendingReceipts = {};
+  final Set<String> _receiptsToUpdate = {};
+  Timer? _receiptsTimer;
   Timer? _typingTimer;
   DateTime? _lastReadUpdate;
   bool _isMarkingRead = false;
@@ -53,11 +58,15 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _scrollController.addListener(_handleScroll);
     _messageController.addListener(_handleTyping);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _markRoomRead(force: true));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _markRoomRead(force: true),
+    );
   }
 
   @override
   void dispose() {
+    _receiptsTimer?.cancel();
+    _flushPendingReceipts();
     _setTyping(false);
     _typingTimer?.cancel();
     _messageController.dispose();
@@ -87,12 +96,24 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _isMarkingRead = true;
     try {
-      await roomRef.set({
+      await roomRef.update({
+        'roomType': widget.room.type,
+        'roomLabel': widget.room.label,
         'lastReadAt.${widget.userProfile.uid}': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      });
       _lastReadUpdate = now;
     } catch (_) {
-      // Ignore read update errors.
+      // Fallback if the room document doesn't exist yet
+      try {
+        await roomRef.set({
+          'roomType': widget.room.type,
+          'roomLabel': widget.room.label,
+          'lastReadAt': {
+            widget.userProfile.uid: FieldValue.serverTimestamp(),
+          }
+        }, SetOptions(merge: true));
+        _lastReadUpdate = now;
+      } catch (__) {}
     } finally {
       _isMarkingRead = false;
     }
@@ -150,6 +171,7 @@ class _ChatScreenState extends State<ChatScreen> {
         'senderId': widget.userProfile.uid,
         'senderName': widget.userProfile.name,
         'senderRole': widget.userProfile.role,
+        'senderAvatarUrl': widget.userProfile.avatarUrl ?? '',
         'deliveredTo': {widget.userProfile.uid: true},
         'readBy': {widget.userProfile.uid: true},
         'createdAt': FieldValue.serverTimestamp(),
@@ -189,65 +211,64 @@ class _ChatScreenState extends State<ChatScreen> {
     return role == AppConstants.teacherRole ? l10n.teacher : l10n.students;
   }
 
-  void _scheduleReceiptsUpdate(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-  ) {
-    if (_messagesRef == null) return;
-    if (docs.isEmpty) return;
+  void _markMessageAsRead(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final uid = widget.userProfile.uid;
-    final toUpdate = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+    final data = doc.data();
+    final senderId = (data['senderId'] ?? '').toString();
+    if (senderId.isEmpty || senderId == uid) return;
 
-    for (final doc in docs.take(60)) {
-      if (_pendingReceipts.contains(doc.id)) continue;
-      final data = doc.data();
-      final senderId = (data['senderId'] ?? '').toString();
-      if (senderId.isEmpty || senderId == uid) continue;
+    final readBy = (data['readBy'] as Map?) ?? {};
+    final read = readBy[uid] == true;
 
-      final deliveredTo = (data['deliveredTo'] as Map?) ?? {};
-      final readBy = (data['readBy'] as Map?) ?? {};
-      final delivered = deliveredTo[uid] == true;
-      final read = readBy[uid] == true;
-      if (delivered && read) continue;
+    if (read) return;
+    if (_pendingReceipts.contains(doc.id)) return;
 
-      _pendingReceipts.add(doc.id);
-      toUpdate.add(doc);
-    }
+    _pendingReceipts.add(doc.id);
+    _receiptsToUpdate.add(doc.id);
 
-    if (toUpdate.isEmpty) return;
+    _scheduleBatchReceiptsUpdate();
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final batch = _firestore.batch();
-      for (final doc in toUpdate) {
-        final updates = <String, dynamic>{
-          'deliveredTo.$uid': true,
-          'readBy.$uid': true,
-        };
-        batch.set(doc.reference, updates, SetOptions(merge: true));
-      }
-      try {
-        await batch.commit();
-        await _markRoomRead(force: true);
-      } catch (_) {}
-      if (mounted) {
-        for (final doc in toUpdate) {
-          _pendingReceipts.remove(doc.id);
-        }
-      }
+  void _scheduleBatchReceiptsUpdate() {
+    _receiptsTimer?.cancel();
+    _receiptsTimer = Timer(const Duration(milliseconds: 500), () {
+      _flushPendingReceipts();
     });
   }
 
-  String _statusLabel(
-    Map<String, dynamic> data,
-    AppLocalizations l10n,
-  ) {
+  void _flushPendingReceipts() async {
+    if (_receiptsToUpdate.isEmpty) return;
+
+    final toUpdate = Set<String>.from(_receiptsToUpdate);
+    _receiptsToUpdate.clear();
+
+    final uid = widget.userProfile.uid;
+    final batch = _firestore.batch();
+    final messagesRef = _messagesRef;
+    if (messagesRef == null) return;
+
+    for (final docId in toUpdate) {
+      final docRef = messagesRef.doc(docId);
+      batch.update(docRef, {
+        'deliveredTo.$uid': true,
+        'readBy.$uid': true,
+      });
+    }
+
+    try {
+      await batch.commit();
+      await _markRoomRead(force: true);
+    } catch (_) {}
+  }
+
+  String _statusLabel(Map<String, dynamic> data, AppLocalizations l10n) {
     final uid = widget.userProfile.uid;
     final deliveredTo = (data['deliveredTo'] as Map?) ?? {};
     final readBy = (data['readBy'] as Map?) ?? {};
     final deliveredCount = deliveredTo.keys
         .where((key) => key.toString() != uid)
         .length;
-    final readCount =
-        readBy.keys.where((key) => key.toString() != uid).length;
+    final readCount = readBy.keys.where((key) => key.toString() != uid).length;
 
     if (readCount > 0) return l10n.read;
     if (deliveredCount > 0) return l10n.delivered;
@@ -260,8 +281,34 @@ class _ChatScreenState extends State<ChatScreen> {
     final messagesRef = _messagesRef;
     final typingRef = _typingRef;
 
+    // Extract group ID from room ID (format: 'group_XX-YY')
+    final isGroupChat = widget.room.type == 'group';
+    final groupId = isGroupChat && widget.room.id.startsWith('group_')
+        ? widget.room.id.replaceFirst('group_', '')
+        : null;
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.room.label), centerTitle: true),
+      appBar: AppBar(
+        title: Text(widget.room.label),
+        centerTitle: true,
+        actions: [
+          if (isGroupChat && groupId != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: IconButton(
+                icon: const Icon(Icons.people),
+                tooltip: l10n.students,
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => GroupMembersScreen(groupId: groupId),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
@@ -272,9 +319,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(
-                    child: Text(snapshot.error.toString()),
-                  );
+                  return Center(child: Text(snapshot.error.toString()));
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -290,8 +335,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   return Center(child: Text(l10n.noMessages));
                 }
 
-                _scheduleReceiptsUpdate(docs);
-
                 return ListView.builder(
                   controller: _scrollController,
                   reverse: true,
@@ -301,20 +344,25 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
-                    final data = docs[index].data();
+                    final doc = docs[index];
+                    _markMessageAsRead(doc);
+                    final data = doc.data();
                     final text = (data['text'] ?? '').toString();
                     final senderId = (data['senderId'] ?? '').toString();
                     final senderName = (data['senderName'] ?? '').toString();
                     final senderRole = (data['senderRole'] ?? '').toString();
+                    final senderAvatarUrl = (data['senderAvatarUrl'] ?? '')
+                        .toString();
                     final timestamp = data['createdAt'] as Timestamp?;
                     final isMe = senderId == widget.userProfile.uid;
-                    final statusLabel =
-                        isMe ? _statusLabel(data, l10n) : null;
+                    final statusLabel = isMe ? _statusLabel(data, l10n) : null;
 
                     return _MessageBubble(
                       message: text,
                       senderName: senderName,
+                      senderId: senderId,
                       senderRole: _roleLabel(senderRole, l10n),
+                      senderAvatarUrl: senderAvatarUrl,
                       timeLabel: _formatTimestamp(timestamp),
                       isMe: isMe,
                       statusLabel: statusLabel,
@@ -370,7 +418,9 @@ class _ChatScreenState extends State<ChatScreen> {
 class _MessageBubble extends StatelessWidget {
   final String message;
   final String senderName;
+  final String senderId;
   final String senderRole;
+  final String senderAvatarUrl;
   final String timeLabel;
   final bool isMe;
   final String? statusLabel;
@@ -378,7 +428,9 @@ class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
     required this.message,
     required this.senderName,
+    required this.senderId,
     required this.senderRole,
+    required this.senderAvatarUrl,
     required this.timeLabel,
     required this.isMe,
     this.statusLabel,
@@ -395,77 +447,115 @@ class _MessageBubble extends StatelessWidget {
         ? theme.colorScheme.onPrimaryContainer
         : theme.colorScheme.onSurface;
 
+
     return Align(
       alignment: alignment,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
-        decoration: BoxDecoration(
-          color: bubbleColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment:
-              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          mainAxisAlignment: isMe
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
           children: [
             if (!isMe) ...[
-              Text(
-                senderName,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ProfileViewScreen(
+                        userId: senderId,
+                        initialName: senderName,
+                        initialAvatarUrl: senderAvatarUrl,
+                      ),
+                    ),
+                  );
+                },
+                child: _UserAvatar(
+                  avatarUrl: senderAvatarUrl,
+                  name: senderName,
+                  radius: 16,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(width: 8),
             ],
-            Text(
-              message,
-              style: TextStyle(color: textColor, fontSize: 14),
-            ),
-            if (timeLabel.isNotEmpty || (!isMe && senderRole.isNotEmpty)) ...[
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment:
-                    isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.65,
+              ),
+              decoration: BoxDecoration(
+                color: bubbleColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: isMe
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
                 children: [
-                  if (!isMe && senderRole.isNotEmpty) ...[
+                  if (!isMe) ...[
                     Text(
-                      senderRole,
+                      senderName,
                       style: TextStyle(
-                        fontSize: 10,
-                        color: textColor.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
                     ),
+                    const SizedBox(height: 4),
                   ],
-                  if (!isMe && senderRole.isNotEmpty && timeLabel.isNotEmpty)
-                    const SizedBox(width: 8),
-                  if (timeLabel.isNotEmpty) ...[
-                    Text(
-                      timeLabel,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: textColor.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                  if (isMe && statusLabel != null && timeLabel.isNotEmpty)
-                    const SizedBox(width: 8),
-                  if (isMe && statusLabel != null) ...[
-                    Text(
-                      statusLabel!,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: textColor.withValues(alpha: 0.7),
-                      ),
+                  Text(
+                    message,
+                    style: TextStyle(color: textColor, fontSize: 14),
+                  ),
+                  if (timeLabel.isNotEmpty ||
+                      (!isMe && senderRole.isNotEmpty)) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: isMe
+                          ? MainAxisAlignment.end
+                          : MainAxisAlignment.start,
+                      children: [
+                        if (!isMe && senderRole.isNotEmpty) ...[
+                          Text(
+                            senderRole,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: textColor.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                        if (!isMe &&
+                            senderRole.isNotEmpty &&
+                            timeLabel.isNotEmpty)
+                          const SizedBox(width: 8),
+                        if (timeLabel.isNotEmpty) ...[
+                          Text(
+                            timeLabel,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: textColor.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                        if (isMe && statusLabel != null && timeLabel.isNotEmpty)
+                          const SizedBox(width: 8),
+                        if (isMe && statusLabel != null) ...[
+                          Text(
+                            statusLabel!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: textColor.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ],
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -494,22 +584,26 @@ class _TypingIndicator extends StatelessWidget {
       builder: (context, snapshot) {
         final docs = snapshot.data?.docs ?? [];
         final now = DateTime.now();
-        final entries = docs.where((doc) {
-          final data = doc.data();
-          final uid = (data['uid'] ?? doc.id).toString();
-          if (uid == currentUserId) return false;
-          final ts = data['updatedAt'] as Timestamp?;
-          if (ts == null) return true;
-          final diff = now.difference(ts.toDate());
-          return diff.inSeconds <= 6;
-        }).map((doc) {
-          final data = doc.data();
-          return _TypingUser(
-            name: (data['name'] ?? '').toString().trim(),
-            role: (data['role'] ?? '').toString().trim(),
-            avatarUrl: (data['avatarUrl'] ?? '').toString().trim(),
-          );
-        }).where((entry) => entry.name.isNotEmpty).toList();
+        final entries = docs
+            .where((doc) {
+              final data = doc.data();
+              final uid = (data['uid'] ?? doc.id).toString();
+              if (uid == currentUserId) return false;
+              final ts = data['updatedAt'] as Timestamp?;
+              if (ts == null) return true;
+              final diff = now.difference(ts.toDate());
+              return diff.inSeconds <= 6;
+            })
+            .map((doc) {
+              final data = doc.data();
+              return _TypingUser(
+                name: (data['name'] ?? '').toString().trim(),
+                role: (data['role'] ?? '').toString().trim(),
+                avatarUrl: (data['avatarUrl'] ?? '').toString().trim(),
+              );
+            })
+            .where((entry) => entry.name.isNotEmpty)
+            .toList();
 
         if (entries.isEmpty) {
           return const SizedBox.shrink();
@@ -579,8 +673,6 @@ class _TypingChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final initials = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
-    final imageProvider = avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -591,30 +683,94 @@ class _TypingChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(
+          _UserAvatar(
+            avatarUrl: avatarUrl,
+            name: name,
             radius: 10,
-            backgroundColor: theme.colorScheme.primaryContainer,
-            backgroundImage: imageProvider,
-            child: imageProvider == null
-                ? Text(
-                    initials,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: theme.colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                : null,
+            textStyle: TextStyle(
+              fontSize: 8,
+              color: theme.colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(width: 6),
           Text(
             '$name ($roleLabel)',
-            style: TextStyle(
-              fontSize: 11,
-              color: theme.colorScheme.onSurface,
-            ),
+            style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurface),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _UserAvatar extends StatelessWidget {
+  final String? avatarUrl;
+  final String name;
+  final double radius;
+  final TextStyle? textStyle;
+
+  const _UserAvatar({
+    required this.avatarUrl,
+    required this.name,
+    required this.radius,
+    this.textStyle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final initials = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
+    final url = (avatarUrl ?? '').trim().resolveEmulatorUrl();
+
+    final fallback = Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: textStyle ??
+            TextStyle(
+              fontSize: radius * 0.75,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onPrimaryContainer,
+            ),
+      ),
+    );
+
+    if (url.isEmpty) {
+      return fallback;
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: radius * 2,
+        height: radius * 2,
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return fallback;
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              width: radius * 2,
+              height: radius * 2,
+              color: theme.colorScheme.primaryContainer,
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: radius,
+                height: radius,
+                child: const CircularProgressIndicator(strokeWidth: 1.5),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

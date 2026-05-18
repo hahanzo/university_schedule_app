@@ -271,4 +271,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get cancel => 'Скасувати';
+
+  @override
+  String get members => 'Учасники';
 }

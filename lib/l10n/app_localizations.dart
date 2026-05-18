@@ -619,6 +619,12 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Скасувати'**
   String get cancel;
+
+  /// No description provided for @members.
+  ///
+  /// In uk, this message translates to:
+  /// **'Учасники'**
+  String get members;
 }
 
 class _AppLocalizationsDelegate

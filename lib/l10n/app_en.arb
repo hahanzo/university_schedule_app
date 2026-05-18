@@ -86,5 +86,6 @@
     "noTestAccounts": "No test accounts.\nRun seed_db.dart script",
     "emulatorMode": "Emulator mode",
     "chooseRoleForTesting": "Choose role for testing",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "members": "Members"
 }
