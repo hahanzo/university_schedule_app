@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/string_extensions.dart';
@@ -258,43 +259,110 @@ class _ContactItem extends StatelessWidget {
     if (lower.contains('instagram')) return Icons.image;
     if (lower.contains('facebook')) return Icons.people;
     if (lower.contains('whatsapp')) return Icons.chat;
-    if (lower.contains('phone')) return Icons.phone;
+    if (lower.contains('phone') || lower.contains('телефон')) return Icons.phone;
+    if (lower.contains('linkedin')) return Icons.work;
+    if (lower.contains('youtube')) return Icons.play_circle;
+    if (lower.contains('github')) return Icons.code;
     return Icons.link;
+  }
+
+  Future<void> _launch() async {
+    String urlString = value.trim();
+    final lowerPlatform = platform.toLowerCase();
+    
+    if (lowerPlatform.contains('phone') || lowerPlatform.contains('телефон')) {
+      final cleanPhone = urlString.replaceAll(RegExp(r'[\s\-()]'), '');
+      final uri = Uri.parse('tel:$cleanPhone');
+      try {
+        await launchUrl(uri);
+      } catch (_) {}
+      return;
+    }
+
+    if (urlString.startsWith('@')) {
+      urlString = urlString.substring(1);
+    }
+
+    Uri? uri;
+    if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
+      if (lowerPlatform.contains('telegram')) {
+        uri = Uri.parse('https://t.me/$urlString');
+      } else if (lowerPlatform.contains('instagram')) {
+        uri = Uri.parse('https://instagram.com/$urlString');
+      } else if (lowerPlatform.contains('facebook')) {
+        uri = Uri.parse('https://facebook.com/$urlString');
+      } else if (lowerPlatform.contains('linkedin')) {
+        uri = Uri.parse('https://linkedin.com/in/$urlString');
+      } else if (lowerPlatform.contains('youtube')) {
+        uri = Uri.parse('https://youtube.com/$urlString');
+      } else {
+        uri = Uri.tryParse('https://$urlString');
+      }
+    } else {
+      uri = Uri.tryParse(urlString);
+    }
+
+    if (uri != null) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        try {
+          await launchUrl(uri);
+        } catch (_) {}
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(
-          _getIcon(platform),
-          size: 18,
-          color: theme.colorScheme.primary,
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                platform,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+    final isLink = !platform.toLowerCase().contains('phone') && !platform.toLowerCase().contains('телефон');
+
+    return InkWell(
+      onTap: _launch,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        child: Row(
+          children: [
+            Icon(
+              _getIcon(platform),
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    platform,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      decoration: TextDecoration.underline,
+                      decorationColor: theme.colorScheme.primary.withValues(alpha: 0.5),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              Text(
-                value,
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 13,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+            ),
+            Icon(
+              isLink ? Icons.open_in_new : Icons.phone_forwarded,
+              size: 14,
+              color: theme.colorScheme.primary.withValues(alpha: 0.7),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

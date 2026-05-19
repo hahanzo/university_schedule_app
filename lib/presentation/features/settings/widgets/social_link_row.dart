@@ -19,10 +19,11 @@ class SocialLinkRow extends StatefulWidget {
 }
 
 class _SocialLinkRowState extends State<SocialLinkRow> {
-  late TextEditingController _platformController;
+  late String _selectedPlatform;
   late TextEditingController _urlController;
 
-  static const List<String> _suggestions = [
+  static const List<String> _platforms = [
+    'Phone',
     'Telegram',
     'Instagram',
     'Facebook',
@@ -30,90 +31,132 @@ class _SocialLinkRowState extends State<SocialLinkRow> {
     'LinkedIn',
     'YouTube',
     'TikTok',
+    'Website',
   ];
 
   @override
   void initState() {
     super.initState();
-    _platformController = TextEditingController(text: widget.initialPlatform);
+    final initial = widget.initialPlatform.trim();
+    if (_platforms.contains(initial)) {
+      _selectedPlatform = initial;
+    } else if (initial.isEmpty) {
+      _selectedPlatform = 'Telegram';
+    } else {
+      _selectedPlatform = 'Website';
+    }
     _urlController = TextEditingController(text: widget.initialUrl);
+    
+    // If initially empty, notify the parent of the default 'Telegram' choice
+    if (widget.initialPlatform.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _notify();
+      });
+    }
   }
 
   @override
   void dispose() {
-    _platformController.dispose();
     _urlController.dispose();
     super.dispose();
   }
 
-  void _notify() =>
-      widget.onChanged(_platformController.text, _urlController.text);
+  void _notify() => widget.onChanged(_selectedPlatform, _urlController.text);
+
+  IconData _getPlatformIcon(String platform) {
+    switch (platform) {
+      case 'Phone':
+        return Icons.phone;
+      case 'Telegram':
+        return Icons.send;
+      case 'Instagram':
+        return Icons.camera_alt;
+      case 'Facebook':
+        return Icons.facebook;
+      case 'WhatsApp':
+        return Icons.chat;
+      case 'LinkedIn':
+        return Icons.work;
+      case 'YouTube':
+        return Icons.play_circle;
+      case 'TikTok':
+        return Icons.music_note;
+      default:
+        return Icons.link;
+    }
+  }
 
   static const _fieldBorder = OutlineInputBorder(
-    borderRadius: BorderRadius.all(Radius.circular(8)),
+    borderRadius: BorderRadius.all(Radius.circular(12)),
   );
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 8, 12),
+        padding: const EdgeInsets.all(12),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Expanded(
-                  child: Autocomplete<String>(
-                    initialValue:
-                        TextEditingValue(text: _platformController.text),
-                    optionsBuilder: (value) => value.text.isEmpty
-                        ? _suggestions
-                        : _suggestions.where((s) =>
-                            s.toLowerCase().contains(value.text.toLowerCase())),
-                    onSelected: (selection) {
-                      _platformController.text = selection;
-                      _notify();
-                    },
-                    fieldViewBuilder:
-                        (context, controller, focusNode, onSubmitted) {
-                      if (controller.text != _platformController.text &&
-                          _platformController.text.isNotEmpty) {
-                        controller.text = _platformController.text;
-                      }
-                      return TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        decoration: const InputDecoration(
-                          labelText: 'Platform',
-                          isDense: true,
-                          border: _fieldBorder,
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedPlatform,
+                    decoration: const InputDecoration(
+                      labelText: 'Платформа',
+                      isDense: true,
+                      border: _fieldBorder,
+                    ),
+                    items: _platforms.map((platform) {
+                      return DropdownMenuItem<String>(
+                        value: platform,
+                        child: Row(
+                          children: [
+                            Icon(
+                              _getPlatformIcon(platform),
+                              size: 18,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(platform),
+                          ],
                         ),
-                        textInputAction: TextInputAction.next,
-                        onChanged: (v) {
-                          _platformController.text = v;
-                          _notify();
-                        },
                       );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedPlatform = value;
+                        });
+                        _notify();
+                      }
                     },
                   ),
                 ),
+                const SizedBox(width: 8),
                 IconButton(
                   onPressed: widget.onRemove,
                   icon: Icon(
-                    Icons.close,
-                    color: Theme.of(context).colorScheme.error,
-                    size: 20,
+                    Icons.delete_outline,
+                    color: theme.colorScheme.error,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             TextField(
               controller: _urlController,
               decoration: const InputDecoration(
-                labelText: 'Link / contact',
+                labelText: 'Посилання або номер телефону',
                 isDense: true,
                 border: _fieldBorder,
               ),
