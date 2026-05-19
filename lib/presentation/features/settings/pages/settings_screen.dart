@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/injection.dart';
@@ -77,25 +78,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   IconData _socialIcon(String platform) {
-    switch (platform.toLowerCase()) {
-      case 'telegram':
-        return Icons.send;
-      case 'instagram':
-        return Icons.camera_alt;
-      case 'facebook':
-        return Icons.facebook;
-      case 'whatsapp':
-        return Icons.chat;
-      case 'телефон':
-      case 'phone':
-        return Icons.phone;
-      case 'linkedin':
-        return Icons.work;
-      case 'youtube':
-        return Icons.play_circle;
-      default:
-        return Icons.link;
-    }
+    final lower = platform.toLowerCase();
+    if (lower.contains('telegram')) return Icons.send;
+    if (lower.contains('instagram')) return Icons.camera_alt;
+    if (lower.contains('facebook')) return Icons.facebook;
+    if (lower.contains('whatsapp')) return Icons.chat;
+    if (lower.contains('phone') || lower.contains('телефон')) return Icons.phone;
+    if (lower.contains('linkedin')) return Icons.work;
+    if (lower.contains('youtube')) return Icons.play_circle;
+    if (lower.contains('github')) return Icons.code;
+    return Icons.link;
   }
 
   @override
@@ -346,7 +338,114 @@ class _ProfileCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            if (contacts.isNotEmpty) ...[
+              const Divider(height: 24),
+              Text(
+                l10n.contacts,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...contacts.map((contact) {
+                final isLink = !contact.label.toLowerCase().contains('phone') && !contact.label.toLowerCase().contains('телефон');
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: InkWell(
+                    onTap: () async {
+                      String urlString = contact.value.trim();
+                      final lowerPlatform = contact.label.toLowerCase();
+                      
+                      if (lowerPlatform.contains('phone') || lowerPlatform.contains('телефон')) {
+                        final cleanPhone = urlString.replaceAll(RegExp(r'[\s\-()]'), '');
+                        final uri = Uri.parse('tel:$cleanPhone');
+                        try {
+                          await launchUrl(uri);
+                        } catch (_) {}
+                        return;
+                      }
+
+                      if (urlString.startsWith('@')) {
+                        urlString = urlString.substring(1);
+                      }
+
+                      Uri? uri;
+                      if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
+                        if (lowerPlatform.contains('telegram')) {
+                          uri = Uri.parse('https://t.me/$urlString');
+                        } else if (lowerPlatform.contains('instagram')) {
+                          uri = Uri.parse('https://instagram.com/$urlString');
+                        } else if (lowerPlatform.contains('facebook')) {
+                          uri = Uri.parse('https://facebook.com/$urlString');
+                        } else if (lowerPlatform.contains('linkedin')) {
+                          uri = Uri.parse('https://linkedin.com/in/$urlString');
+                        } else if (lowerPlatform.contains('youtube')) {
+                          uri = Uri.parse('https://youtube.com/$urlString');
+                        } else {
+                          uri = Uri.tryParse('https://$urlString');
+                        }
+                      } else {
+                        uri = Uri.tryParse(urlString);
+                      }
+
+                      if (uri != null) {
+                        try {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } catch (_) {
+                          try {
+                            await launchUrl(uri);
+                          } catch (_) {}
+                        }
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            contact.icon,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  contact.label,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                Text(
+                                  contact.value,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: theme.colorScheme.primary.withValues(alpha: 0.5),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            isLink ? Icons.open_in_new : Icons.phone_forwarded,
+                            size: 14,
+                            color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
           ],
         ),
       ),

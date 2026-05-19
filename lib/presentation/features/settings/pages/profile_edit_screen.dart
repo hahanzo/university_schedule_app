@@ -47,7 +47,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _nameController.text = widget.userProfile.name;
     _selectedGroupId = widget.userProfile.groupId;
     widget.userProfile.socialLinks?.forEach((k, v) {
-      _socialEntries.add({'platform': k, 'url': v});
+      _socialEntries.add({
+        'id': UniqueKey().toString(),
+        'platform': k,
+        'url': v,
+      });
     });
     _loadOptions();
   }
@@ -98,7 +102,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       });
 
   void _addSocialEntry() =>
-      setState(() => _socialEntries.add({'platform': '', 'url': ''}));
+      setState(() => _socialEntries.add({
+            'id': UniqueKey().toString(),
+            'platform': '',
+            'url': '',
+          }));
 
   void _removeSocialEntry(int index) =>
       setState(() => _socialEntries.removeAt(index));
@@ -225,11 +233,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               const SizedBox(height: 8),
 
               ..._socialEntries.asMap().entries.map((e) => SocialLinkRow(
-                    key: ValueKey(e.key),
+                    key: ValueKey(e.value['id']!),
                     initialPlatform: e.value['platform'] ?? '',
                     initialUrl: e.value['url'] ?? '',
-                    onChanged: (platform, url) =>
-                        _socialEntries[e.key] = {'platform': platform, 'url': url},
+                    onChanged: (platform, url) {
+                      _socialEntries[e.key]['platform'] = platform;
+                      _socialEntries[e.key]['url'] = url;
+                    },
                     onRemove: () => _removeSocialEntry(e.key),
                   )),
               if (_submitError != null) ...[
