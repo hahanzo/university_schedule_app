@@ -11,6 +11,7 @@ import 'filter_chips_bar.dart';
 import 'group_divider.dart';
 import 'lesson_card.dart';
 import 'time_divider.dart';
+import 'reschedule_bottom_sheet.dart';
 
 // ─── Filter bar ───────────────────────────────────────────────────────────────
 
@@ -204,7 +205,18 @@ class TeacherLessonList extends StatelessWidget {
     }
     if (item is TimeDividerItem) return const TimeDivider();
     if (item is LessonItem) {
-      return LessonCard(lesson: item.lesson, showGroupInstead: true);
+      return InkWell(
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => RescheduleBottomSheet(lesson: item.lesson),
+          );
+        },
+        child: LessonCard(lesson: item.lesson, showGroupInstead: true),
+      );
     }
     return const SizedBox.shrink();
   }

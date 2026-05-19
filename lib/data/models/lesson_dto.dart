@@ -19,6 +19,7 @@ abstract class LessonDto with _$LessonDto {
     required String type,
     required String weekType,
     @Default(false) bool isModification,
+    @Default('') String id,
   }) = _LessonDto;
 
   factory LessonDto.fromJson(Map<String, dynamic> json) => _$LessonDtoFromJson(json);
