@@ -15,7 +15,11 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       _firestore.collection('schedule').where('teacherId', isEqualTo: teacherId);
 
   List<LessonDto> _mapDocs(QuerySnapshot<Map<String, dynamic>> snapshot) =>
-      snapshot.docs.map((doc) => LessonDto.fromJson(doc.data())).toList();
+      snapshot.docs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data());
+        data['id'] = doc.id;
+        return LessonDto.fromJson(data);
+      }).toList();
 
   // ── Group methods ──────────────────────────────────────────────────────────
 

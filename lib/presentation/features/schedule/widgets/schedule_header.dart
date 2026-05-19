@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:university_schedule_app/l10n/app_localizations.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../auth/blocs/auth_cubit.dart';
+import '../../auth/blocs/auth_state.dart';
+import '../pages/notifications_screen.dart';
 
 class ScheduleHeader extends StatefulWidget {
   final VoidCallback onFilterPressed;
@@ -58,9 +63,88 @@ class _ScheduleHeaderState extends State<ScheduleHeader>
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
+          Builder(
+            builder: (context) {
+              final authState = context.watch<AuthCubit>().state;
+              final user = authState.maybeWhen(
+                authenticated: (u) => u,
+                orElse: () => null,
+              );
+
+              if (user == null) {
+                return IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () {},
+                );
+              }
+
+              final bool isTeacher = user.role == AppConstants.teacherRole;
+              Query query = FirebaseFirestore.instance.collection('notifications');
+              if (isTeacher) {
+                query = query.where('teacherName', isEqualTo: user.name);
+              } else {
+                query = query.where('groupId', isEqualTo: user.groupId ?? '');
+              }
+
+              return StreamBuilder<QuerySnapshot>(
+                stream: query.snapshots(),
+                builder: (context, snapshot) {
+                  int unreadCount = 0;
+                  if (snapshot.hasData) {
+                    if (isTeacher) {
+                      unreadCount = 0;
+                    } else {
+                      unreadCount = snapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>? ?? {};
+                        final isReadBy = data['isReadBy'] as Map<String, dynamic>? ?? {};
+                        return isReadBy[user.uid] != true;
+                      }).length;
+                    }
+                  }
+
+                  return Stack(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_outlined),
+                        onPressed: () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const NotificationsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.error,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 14,
+                              minHeight: 14,
+                            ),
+                            child: Text(
+                              '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
           const SizedBox(width: 8),
           Expanded(
